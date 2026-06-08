@@ -1,7 +1,8 @@
 const mongoose = require('mongoose')
 const salesModel = new mongoose.Schema({
     product: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'productModel',
         required: true
     },
     quantitySold: {
@@ -12,7 +13,8 @@ const salesModel = new mongoose.Schema({
         type: Number
     },
     soldBy: {
-        type: String
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'userModel'
     },
     customerName: {
         type: String

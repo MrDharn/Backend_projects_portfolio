@@ -4,7 +4,8 @@ const productModel = new mongoose.Schema({
         type: String
     },
     category:{
-        type:String
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'categoryModel'
     },
     description:{
         type: String
@@ -19,10 +20,12 @@ const productModel = new mongoose.Schema({
         type: Number
     },
     supplier:{
-        type: String
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'supplierModel'
     },
     createdBy:{
-        type: String
+        type: mongoose.Schema.Types.ObjectId,
+        ref : 'userModel'
     }
 })
 

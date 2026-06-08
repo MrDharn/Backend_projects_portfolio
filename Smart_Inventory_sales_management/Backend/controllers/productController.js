@@ -10,7 +10,7 @@ const createProduct = async (req, res) => {
       });
     //Check if product is already in database
 
-    const checkProduct = await productModel.findOne({email});
+    const checkProduct = await productModel.findOne({productName});
 
     //control its existence
     if (checkProduct)
@@ -18,12 +18,13 @@ const createProduct = async (req, res) => {
         status: "failed",
         message: "product is already in Database",
       });
-    const newProduct = new productModel({ productName, phoneNumber, email, address });
+    const newProduct = new productModel({ productName, description, quantity, costPrice, sellingPrice });
 
     await newProduct.save();
     res.status(201).json({
       status: "success",
       message: "product is created successfully",
+      newProduct
     });
   } catch (e) {
     console.error(e);
@@ -38,7 +39,7 @@ const createProduct = async (req, res) => {
 const searchProduct = async(req, res)=>{
   try{
     const productToSearch = req.query
-    const returnProduct = await productModel.find({productName: searchProduct})
+    const returnProduct = await productModel.find({productName: productToSearch})
     if(!returnProduct) return res.status(404).json({
       status: "failed",
       message: "There is no such product"
@@ -62,7 +63,7 @@ const searchProduct = async(req, res)=>{
 //filter products by category
 const filterByCategory = async(req, res)=>{
   try{
-    const categorySearch = req.query;
+    const {categorySearch} = req.query;
     const searchedResult = await productModel.find({category:categorySearch})
     if(!searchedResult) return res.status(404).json({
       status:"Failed",
@@ -105,12 +106,20 @@ const getLowStockedProducts = async(req, res)=> {
     })
   }
 }
+
+//get all products
+
 const allProducts = async (req, res) => {
   try {
     const products = await productModel.find({});
+    if(products.length === 0) return res.status(404).json({
+      status:"failed",
+      message: "there is no product available"
+    })
     res.status(200).json({
       status: "success",
-      message: "Fetched successfully"
+      message: "Fetched successfully",
+      products
     });
   } catch (e) {
      console.error(e);

@@ -24,6 +24,7 @@ const createCategory = async (req, res) => {
     res.status(201).json({
       status: "success",
       message: "Category is created successfully",
+      newCategory
     });
   } catch (e) {
     console.error(e);
@@ -39,7 +40,8 @@ const allCategories = async (req, res) => {
     const categories = await categoryModel.find({});
     res.status(200).json({
       status: "success",
-      message: "Fetched successfully"
+      message: "Fetched successfully",
+      categories
     });
   } catch (e) {
      console.error(e);

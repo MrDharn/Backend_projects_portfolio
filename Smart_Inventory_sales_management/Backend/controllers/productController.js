@@ -3,7 +3,7 @@ const categoryModel = require('../Model/Category')
 //post
 const createProduct = async (req, res) => {
   try {
-    const { productName, description, quantity, costPrice, sellingPrice } =
+    const { productName, description, quantity, costPrice, sellingPrice , category} =
       req.body;
     if (
       !productName ||
@@ -32,6 +32,7 @@ const createProduct = async (req, res) => {
       quantity,
       costPrice,
       sellingPrice,
+      category
     });
 
     await newProduct.save();
@@ -95,15 +96,15 @@ const filterByCategory = async (req, res) => {
       status:"failed",
       message: "No such category"
     })
-    console.log(checkCategoryExistence)
+    console.log(checkCategoryExistence._id)
     
-    const searchedCategory = await productModel.find({category: checkCategoryExistence._id})
+    const searchedCategory = await productModel.find({}).populate('category')
+    console.log(searchedCategory)
     if(searchedCategory.length === 0) return res.status(404).json({
       status:"failed",
       message: "Category item is empty"
     })
 
-    console.log(searchedCategory)
     res.status(200).json({
       status: "success",
       message: "Found",

@@ -199,6 +199,43 @@ const getLowStockedProducts = async (req, res) => {
   }
 };
 
+//Restocking controller
+const restockProduct = async(req, res)=>{
+  try{
+    const productId = req.params.id;
+    const {quantity} = req.body
+
+    if(quantity === undefined || (typeof quantity)!== Number)return res.status(400).json({
+      status:"Failed",
+      message: "This is not a number or field is empty"
+
+    })
+    //Check if product is in DB
+    const productToRestock = await productModel.findById(productId);
+
+    if(!productToRestock) return res.status(404).json({
+      status:"failed",
+      message:"Such product does not exist"
+    });
+
+    const newQuantity = productToRestock.quantity + quantity
+
+    const restockedProduct = await productModel.findByIdAndUpdate(productId, {quantity: newQuantity}, {returnDocument: 'true'});
+
+    res.status(200).json({
+      status:"success",
+      message:"Restocked successfully!!!",
+      restockedProduct
+    })
+  }catch(e){
+    console.error(e);
+    res.status(500).json({
+      status:'Failed',
+      message: "Something went Wrong"
+    })
+  }
+}
+
 //get all products
 
 const allProducts = async (req, res) => {

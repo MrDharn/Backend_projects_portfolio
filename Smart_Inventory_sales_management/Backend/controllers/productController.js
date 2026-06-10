@@ -1,45 +1,92 @@
 const productModel = require("../Model/Product");
-const categoryModel = require('../Model/Category')
+const categoryModel = require("../Model/Category");
+const supplierModel = require("../Model/Supplier");
 //post
 const createProduct = async (req, res) => {
   try {
-    const { productName, description, quantity, costPrice, sellingPrice , category} =
-      req.body;
+    const {
+      productName,
+      description,
+      quantity,
+      costPrice,
+      sellingPrice,
+      category,
+      supplier,
+      createdBy,
+    } = req.body;
     if (
       !productName ||
       !description ||
+      !category ||
+      !supplier ||
       quantity === undefined ||
       costPrice === undefined ||
       sellingPrice === undefined
     )
       return res.status(403).json({
         status: "failed",
-        message: "all the four fields are to be filled",
+        message: "all the fields are to be filled",
       });
+
+    /**
+     * Checking if the productName is already in database in not ideal
+     *
+     */
+
     //Check if product is already in database
 
-    const checkProduct = await productModel.findOne({ productName });
+    // const checkProduct = await productModel.findOne({ productName });
 
-    //control its existence
-    if (checkProduct)
-      return res.status(400).json({
+    // //control its existence
+    // if (checkProduct)
+    //   return res.status(400).json({
+    //     status: "failed",
+    //     message: "product is already in Database",
+    //   });
+
+    //check if the category provided is in my Database
+    const checkCategoryExistence = await categoryModel.findOne({
+      categoryName: category,
+    });
+    if (!checkCategoryExistence)
+      return res.status(404).json({
         status: "failed",
-        message: "product is already in Database",
+        message: "No such Category",
       });
+
+    //check if the supplier Name is Existing
+    const checkSupplierExistence = await supplierModel.findOne({
+      supplierName: supplier,
+    });
+    if (!checkSupplierExistence)
+      return res.status(404).json({
+        status: "failed",
+        message: "No such supplier in Existence",
+      });
+
     const newProduct = new productModel({
       productName,
       description,
       quantity,
       costPrice,
       sellingPrice,
-      category
+      category: checkCategoryExistence._id,
+      supplier: checkSupplierExistence._id,
+      createdBy,
     });
 
     await newProduct.save();
+
+    //let us populate immediately after creation
+    const populatedProduct = await productModel
+      .findById(newProduct._id)
+      .populate("category")
+      .populate("supplier");
+
     res.status(201).json({
       status: "success",
       message: "product is created successfully",
-      newProduct,
+      populatedProduct,
     });
   } catch (e) {
     console.error(e);
@@ -83,27 +130,34 @@ const searchProduct = async (req, res) => {
 //filter products by category
 const filterByCategory = async (req, res) => {
   try {
-    const {categorySearch} = req.query;
+    const { categorySearch } = req.query;
     //check if the category Exist in my Category Database;
-    const checkCategoryExistence = await categoryModel.findOne({categoryName: {
-      $regex: categorySearch,
-      $options: "i"
-    }})
+    const checkCategoryExistence = await categoryModel.findOne({
+      categoryName: {
+        $regex: categorySearch,
+        $options: "i",
+      },
+    });
 
     //control
 
-    if(!checkCategoryExistence) return res.status(404).json({
-      status:"failed",
-      message: "No such category"
-    })
-    console.log(checkCategoryExistence._id)
-    
-    const searchedCategory = await productModel.find({}).populate('category')
-    console.log(searchedCategory)
-    if(searchedCategory.length === 0) return res.status(404).json({
-      status:"failed",
-      message: "Category item is empty"
-    })
+    if (!checkCategoryExistence)
+      return res.status(404).json({
+        status: "failed",
+        message: "No such category",
+      });
+    console.log(checkCategoryExistence._id);
+
+    const searchedCategory = await productModel
+      .find({ category: checkCategoryExistence._id })
+      .populate("category", "-_id categoryName")
+      .populate("supplier", "-_id supplierName email phoneNumber");
+    console.log(searchedCategory);
+    if (searchedCategory.length === 0)
+      return res.status(404).json({
+        status: "failed",
+        message: "Category item is empty",
+      });
 
     res.status(200).json({
       status: "success",

@@ -37,6 +37,11 @@ const createSupplier = async (req, res) => {
 const allSuppliers = async (req, res) => {
   try {
     const suppliers = await supplierModel.find({});
+
+    if(suppliers.length === 0) return res.status(404).json({
+      status:"failed",
+      message: "No supplier in the databasen yet"
+    })
     res.status(200).json({
       status: "success",
       message: "Fetched successfully"

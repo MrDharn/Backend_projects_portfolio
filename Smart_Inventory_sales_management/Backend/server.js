@@ -43,7 +43,7 @@ app.use('/api/users', userManagementRoute);
 app.use('/api/categories', categoryRoute);
 
 //suppliers route
-app.use('api/suppliers', supplierRoute)
+app.use('/api/suppliers', supplierRoute)
 
 //product management route
 app.use('/api/products', productRoute)

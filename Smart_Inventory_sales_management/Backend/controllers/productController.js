@@ -371,4 +371,5 @@ module.exports = {
   filterByCategory,
   searchProduct,
   getLowStockedProducts,
+  restockProduct
 };

@@ -2,19 +2,20 @@ const mongoose = require('mongoose')
 const salesModel = new mongoose.Schema({
     product: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'productModel',
-        required: true
+        ref: 'products',
     },
     quantitySold: {
         type: Number,
     },
-    unitPrice,
+    unitPrice: {
+        type: Number
+    },
     totalAmount:{
         type: Number
     },
     soldBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'userModel'
+        ref: 'users'
     },
     customerName: {
         type: String

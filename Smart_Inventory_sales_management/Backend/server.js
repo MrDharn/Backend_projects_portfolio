@@ -16,6 +16,7 @@ const userManagementRoute = require('./Routes/userManagementRoute');
 const categoryRoute = require('./Routes/categoryRoutes');
 const supplierRoute = require('./Routes/supplierRoute');
 const productRoute = require('./Routes/productRoutes');
+const salesRoute = require('./Routes/salesRoute');
 //declare your port
 const PORT = process.env.PORT || 3000
 
@@ -47,6 +48,9 @@ app.use('/api/suppliers', supplierRoute)
 
 //product management route
 app.use('/api/products', productRoute)
+
+//sales routes
+app.use('/api/sales', salesRoute)
 //listen to express app
 const startSever = async()=>{
     try{

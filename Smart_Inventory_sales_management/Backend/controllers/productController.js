@@ -1,6 +1,7 @@
 const productModel = require("../Model/Product");
 const categoryModel = require("../Model/Category");
 const supplierModel = require("../Model/Supplier");
+const stockMovementModel = require("../Model/stockMovement")
 //post
 const createProduct = async (req, res) => {
   try {
@@ -222,6 +223,21 @@ const restockProduct = async(req, res)=>{
 
     const restockedProduct = await productModel.findByIdAndUpdate(productId, {quantity: newQuantity}, {returnDocument: 'true'});
 
+    /**
+     * 
+     * THIS IS FOR STOCK MOVEMENT CONCERNING RESTOCKING
+     */
+
+    const newStockMovement = new stockMovementModel({
+      product: productId,
+      movementType: "IN",
+      quantity: quantity,
+      performedBy: req.userInfo._id,
+      date
+    })
+
+    await newStockMovement.save();
+    
     res.status(200).json({
       status:"success",
       message:"Restocked successfully!!!",

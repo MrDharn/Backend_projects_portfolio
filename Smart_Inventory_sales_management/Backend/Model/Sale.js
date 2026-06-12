@@ -13,6 +13,9 @@ const salesModel = new mongoose.Schema({
     totalAmount:{
         type: Number
     },
+    profit:{
+        type: Number
+    },
     soldBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'users'

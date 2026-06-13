@@ -18,6 +18,7 @@ const supplierRoute = require('./Routes/supplierRoute');
 const productRoute = require('./Routes/productRoutes');
 const salesRoute = require('./Routes/salesRoute');
 const stockMovementRoute = require('./Routes/stockMovementRoute');
+const dashBoardRoute = require('./Routes/dashboardRoute');
 //declare your port
 const PORT = process.env.PORT || 3000
 
@@ -52,6 +53,9 @@ app.use('/api/products', productRoute)
 
 //sales routes
 app.use('/api/sales', salesRoute)
+
+//dashboard Route
+app.use('/api/dashboard', dashBoardRoute)
 
 //Stock movement route
 app.use('/api/stock-movement', stockMovementRoute)

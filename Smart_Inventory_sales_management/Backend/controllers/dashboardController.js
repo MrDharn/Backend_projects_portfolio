@@ -9,20 +9,48 @@ const getOverview = async (req, res)=>{
         const totalProducts = await productModel.countDocuments({})
         const totalSupplier = await supplierModel.countDocuments({})
         const totalSales = await salesModel.countDocuments({})
-        const totalRevenue = 20
-        const totalProfit = await salesModel.aggregate([
+
+
+        const productSalesHistory = await salesModel.aggregate([
             //Stage1
-            {$match: {profit: "$profit"}}
+            {$group:{_id : null, 
+                totalProfit: {$sum : "$profit"},
+                totalSales: {
+                    $sum: "$quantitySold"
+                },
+                totalRevenue:{
+                    $sum : "$totalAmount"
+                }
+            }}
         ])
 
+        const TotalQuantitySold = productSalesHistory.length === 0 ? 0 : productSalesHistory[0].quantitySold
+        const totalProfitValue = productSalesHistory.length === 0 ? 0 : productSalesHistory[0].totalProfit
+        const totalRevenue = productSalesHistory.length === 0 ? 0 : productSalesHistory[0].totalRevenue
+
+       
+        
+    /**
+     * 
+     * GET LOW STOCKs
+     */
+
+    const lowStockProducts = await productModel.aggregate([
+        //stage
+        {$match: {
+            lowStockProducts: {$lt: 10}
+        }}
+    ])
+    
+    const getLowStockProduct = lowStockProducts.length === 0 ? 0: lowStockProducts[0].lowStockProducts
         res.status(200).json({
             totalCategories: totalCategories,
             totalProducts: totalProducts,
             totalSupplier: totalSupplier,
-            // totalSales: totalSales,
-            // totalRevenue: totalRevenue,
-            totalProfit: totalProfit,
-            // lowStockProducts: lowStockProducts
+            totalSales: TotalQuantitySold,
+            totalRevenue: totalRevenue,
+            totalProfit: totalProfitValue,
+            lowStockProducts: getLowStockProduct
         })
     }catch(e){
         console.error(e);

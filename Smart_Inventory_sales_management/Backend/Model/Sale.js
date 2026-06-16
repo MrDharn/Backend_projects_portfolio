@@ -22,9 +22,6 @@ const salesModel = new mongoose.Schema({
     },
     customerName: {
         type: String
-    },
-    saleDate: {
-        type: Date
     }
 
 }, {timestamps: true});

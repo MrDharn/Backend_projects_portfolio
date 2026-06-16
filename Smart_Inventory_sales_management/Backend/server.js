@@ -19,6 +19,7 @@ const productRoute = require('./Routes/productRoutes');
 const salesRoute = require('./Routes/salesRoute');
 const stockMovementRoute = require('./Routes/stockMovementRoute');
 const dashBoardRoute = require('./Routes/dashboardRoute');
+const reportRoute = require('./Routes/reportRoute');
 //declare your port
 const PORT = process.env.PORT || 3000
 
@@ -59,6 +60,9 @@ app.use('/api/dashboard', dashBoardRoute)
 
 //Stock movement route
 app.use('/api/stock-movement', stockMovementRoute)
+
+//report route
+app.use('/api/report/', reportRoute)
 //listen to express app
 const startSever = async()=>{
     try{

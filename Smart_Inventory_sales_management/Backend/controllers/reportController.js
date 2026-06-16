@@ -48,17 +48,25 @@ const getBestSellingProduct = async (req, res) => {
   }
 };
 
-
 // DAILY SALES REPORT
-const getDailyReport = async (req, res) => {
+/**
+ *
+ * USING ONE ENDPOINT .... BASE ON DATE SELECTED BY THE USER
+ */
+
+const getReport = async (req, res) => {
   try {
-    const startOfDay = new Date();
+    const selectedDate = req.query.date || new Date();
+    const startOfDay = new Date(selectedDate);
     startOfDay.setHours(0, 0, 0, 0);
 
-    const endOfDay = new Date();
+    const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const dailyReport = await salesModel.aggregate([
+    console.log(startOfDay, endOfDay);
+
+    const report = await salesModel.aggregate([
+      //stage1
       {
         $match: {
           createdAt: {
@@ -67,9 +75,11 @@ const getDailyReport = async (req, res) => {
           },
         },
       },
+
+      //stage 2
       {
         $group: {
-          _id: null,
+          _id: NULL,
           totalTransactions: {
             $sum: 1,
           },
@@ -86,28 +96,90 @@ const getDailyReport = async (req, res) => {
       },
     ]);
 
-    const result =
-      dailyReport.length === 0
+    const reportDetails =
+      report.length === 0
         ? {
             totalTransactions: 0,
             totalItemsSold: 0,
             totalRevenue: 0,
             totalProfit: 0,
           }
-        : getDailyReporteport[0];
+        : report[0];
 
     res.status(200).json({
       status: "success",
-      message: "Daily report fetched successfully",
-      report: result,
+      message: "Reports fetched successfully",
+      report: reportDetails,
     });
   } catch (e) {
     console.error(e);
     res.status(500).json({
       status: "failed",
-      message: "Something went wrong",
+      message: "Something went wrong!!!!",
     });
   }
 };
 
-module.exports = { getBestSellingProduct, getDailyReport };
+/**
+ * ENDPOINT TO GET THE BEST STAFF (BASE ON PRODUCTS AND REVENUE)
+ *
+ */
+
+const getBestStaff = async(req, res)=>{
+    try{
+
+        const bestStaff = await salesModel.aggregate([
+            //stage 1
+            {$group: {
+                _id: "$soldBy",
+                totalRevenue: {
+                    $sum: "$totalAmount"
+                },
+                totalQuantity: {
+                    $sum : "$quantitySold"
+                }
+            }},
+            {$sort: {
+                totalRevenue: -1
+            }},
+
+            //STAGE 2
+
+            {$lookup: {
+                from: "users",
+                localField: '_id',
+                foreignField: '_id',
+                as: "userDetails"
+            }},
+
+            //STAGE 3
+
+            {$unwind: "$userDetails"},
+
+            //STAGE 4
+            {$project: {
+                staffName: "$userDetails.username",
+                totalRevenue: 1,
+                totalQuantity: 1
+            }}
+
+        ])
+        // const staff = getBestStaff.length === 0 ? NULL : bestStaff[0]
+
+        res.status(200).json({
+            status:"success",
+            message: "Best staff here ",
+            //In order to see all other staffs
+            bestStaff: bestStaff
+        })
+    }catch(e){
+        console.error(e);
+        res.status(500).json({
+            status:"failed",
+            message: "Something went wrong"
+        })
+    }
+};
+
+
+module.exports = { getBestSellingProduct, getReport , getBestStaff};

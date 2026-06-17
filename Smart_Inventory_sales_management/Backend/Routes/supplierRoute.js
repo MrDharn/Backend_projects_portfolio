@@ -10,7 +10,7 @@ const supplierRoute = express.Router();
 supplierRoute.route('/').post(authMiddleware, userManagementMiddleware, createSupplier)
 supplierRoute.route('/').get(authMiddleware, userManagementMiddleware, allSuppliers)
 supplierRoute.route('/:id').get(authMiddleware, userManagementMiddleware, getSingleSupplier)
-supplierRoute.route('/:id').get(authMiddleware, userManagementMiddleware, updateSupplier)
-supplierRoute.route('/:id').get(authMiddleware, userManagementMiddleware, deleteSupplier)
+supplierRoute.route('/:id').patch(authMiddleware, userManagementMiddleware, updateSupplier)
+supplierRoute.route('/:id').delete(authMiddleware, userManagementMiddleware, deleteSupplier)
 
 module.exports = supplierRoute

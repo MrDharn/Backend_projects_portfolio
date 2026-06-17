@@ -34,11 +34,20 @@ const getBestSellingProduct = async (req, res) => {
       {
         $project: {
           _id: 0,
-          product: "$productDetails.name",
+          product: "$productDetails.productName",
           totalQuantitySold: 1,
         },
       },
     ]);
+
+    res.status(200).json({
+      status: "success",
+      message:"successful!!! ",
+      bestSellingProduct: bestSellingProduct.length === 0 ? {
+        productName: null,
+        totalQuantitySold: 0,
+      } : bestSellingProduct
+    })
   } catch (e) {
     console.error(e);
     res.status(500).json({
@@ -79,7 +88,7 @@ const getReport = async (req, res) => {
       //stage 2
       {
         $group: {
-          _id: NULL,
+          _id: null,
           totalTransactions: {
             $sum: 1,
           },

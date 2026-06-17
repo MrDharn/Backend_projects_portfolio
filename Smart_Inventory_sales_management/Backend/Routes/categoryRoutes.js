@@ -7,7 +7,7 @@ const categoryRoute = express.Router();
 categoryRoute.route('/').post(authMiddleware, userManagementMiddleware, createCategory)
 categoryRoute.route('/').get(authMiddleware, userManagementMiddleware, allCategories)
 categoryRoute.route('/:id').get(authMiddleware, userManagementMiddleware, getSingleCategory)
-categoryRoute.route('/:id').get(authMiddleware, userManagementMiddleware, updateCategory)
-categoryRoute.route('/:id').get(authMiddleware, userManagementMiddleware, deleteCategory)
+categoryRoute.route('/:id').patch(authMiddleware, userManagementMiddleware, updateCategory)
+categoryRoute.route('/:id').delete(authMiddleware, userManagementMiddleware, deleteCategory)
 
 module.exports = categoryRoute

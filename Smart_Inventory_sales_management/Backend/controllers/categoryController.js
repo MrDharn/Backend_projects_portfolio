@@ -66,7 +66,8 @@ const getSingleCategory = async (req, res) => {
 
     res.status(200).json({
         status:"success",
-        message: "Category found"
+        message: "Category found",
+        category
     })
   } catch (e) {
      console.error(e);

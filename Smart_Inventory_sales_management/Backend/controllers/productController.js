@@ -73,7 +73,7 @@ const createProduct = async (req, res) => {
       sellingPrice,
       category: checkCategoryExistence._id,
       supplier: checkSupplierExistence._id,
-      createdBy,
+      createdBy: req.userInfo._id,
     });
 
     await newProduct.save();
@@ -81,8 +81,8 @@ const createProduct = async (req, res) => {
     //let us populate immediately after creation
     const populatedProduct = await productModel
       .findById(newProduct._id)
-      .populate("category")
-      .populate("supplier");
+      .populate("category", "-_id categoryName")
+      .populate("supplier", "-_id supplierName email");
 
     res.status(201).json({
       status: "success",
@@ -206,7 +206,7 @@ const restockProduct = async(req, res)=>{
     const productId = req.params.id;
     const {quantity} = req.body
 
-    if(quantity === undefined || (typeof quantity)!== Number)return res.status(400).json({
+    if(quantity === undefined)return res.status(400).json({
       status:"Failed",
       message: "This is not a number or field is empty"
 
@@ -221,7 +221,7 @@ const restockProduct = async(req, res)=>{
 
     const newQuantity = productToRestock.quantity + quantity
 
-    const restockedProduct = await productModel.findByIdAndUpdate(productId, {quantity: newQuantity}, {returnDocument: 'true'});
+    const restockedProduct = await productModel.findByIdAndUpdate(productId, {quantity: newQuantity}, {returnDocument: 'after'});
 
     /**
      * 
@@ -233,7 +233,6 @@ const restockProduct = async(req, res)=>{
       movementType: "IN",
       quantity: quantity,
       performedBy: req.userInfo._id,
-      date
     })
 
     await newStockMovement.save();

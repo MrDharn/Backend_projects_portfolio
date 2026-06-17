@@ -6,7 +6,7 @@ const stockMovementModel = require('../Model/stockMovement')
 //create sales controller
 const createSales = async (req, res) => {
   try {
-    const { product, quantitySold, customerName, saleDate } = req.body;
+    const { product, quantitySold, customerName} = req.body;
 
     //make sure product , quantitySold and customerName are not empty
     if (!product || !customerName || quantitySold === undefined)
@@ -20,7 +20,7 @@ const createSales = async (req, res) => {
      *check is the product is not out of stock
      *Check if the number to be sold is greater than the current number of quantity
      */
-    const checkProductAvailability = await productModel.findById(product);
+    const checkProductAvailability = await productModel.findOne({productName: product});
     if (!checkProductAvailability)
       return res.status(404).json({
         status: "failed",
@@ -53,7 +53,6 @@ const createSales = async (req, res) => {
       totalAmount: quantitySold * unitPrice,
       profit,
       customerName,
-      saleDate,
       soldBy: req.userInfo._id,
     });
 
@@ -72,12 +71,11 @@ const createSales = async (req, res) => {
      * 
      * THIS IS FOR THE STOCK MOVEMENT UPDATE
      */
-    const newStockMovement = new stockMovementMode({
+    const newStockMovement = new stockMovementModel({
       product: checkProductAvailability._id,
       movementType: "OUT",
       quantity: quantitySold,
       performedBy: req.userInfo._id,
-      date
     })
 
     await newStockMovement.save();
@@ -101,8 +99,8 @@ const allSales = async (req, res) => {
   try {
     const sales = await salesModel
       .find({})
-      .populate("products", "-_id")
-      .populate("users", "username email -_id");
+      .populate("product", "-_id productName sellingPrice")
+      .populate("soldBy", "username email -_id");
 
     if (sales.length === 0)
       return res.status(404).json({
@@ -133,10 +131,10 @@ const getSingleSales = async (req, res) => {
     //find by Id in salesModel
     const sale = await salesModel
       .findById(salesId)
-      .populate("product", "-_id")
+      .populate("product", "-_id productName sellingPrice")
       .populate("soldBy", "username email -_id");
 
-    if (!sales)
+    if (!sale)
       return res.status(400).json({
         status: "failed",
         message: "No such sales have been made",

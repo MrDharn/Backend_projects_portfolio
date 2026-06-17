@@ -1,10 +1,16 @@
 const mongoose = require('mongoose');
 const stockMovementModel = new mongoose.Schema({
-    product: mongoose.Schema.Types.ObjectId,
+    product:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'products'
+    } ,
+
     movementType: String, // IN or OUT
     quantity: Number,
-    performedBy: mongoose.Schema.Types.ObjectId,
-    date: Date
-})
+    performedBy:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users',
+    } 
+},{timestamps: true})
 
 module.exports = mongoose.model('stockMovement', stockMovementModel)

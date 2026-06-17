@@ -7,7 +7,7 @@ const userManagementMiddleware = require('../Middlewares/userManagementMiddlewar
 
 reportRoute.route('/best-product').get(authMiddleware, userManagementMiddleware, getBestSellingProduct)
 reportRoute.route('/best-staff').get(authMiddleware, userManagementMiddleware, getBestStaff)
-reportRoute.route('/:date').get(authMiddleware, userManagementMiddleware, getReport)
+reportRoute.route('/date').get(authMiddleware, userManagementMiddleware, getReport)
 
 
 module.exports = reportRoute

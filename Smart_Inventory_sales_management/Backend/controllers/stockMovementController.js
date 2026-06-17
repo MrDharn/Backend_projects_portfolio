@@ -7,7 +7,7 @@ const getAllStockMovement = async (req, res) => {
       .find({})
       .populate("product", "productName -_id email")
       .populate("performedBy", "-_id username email");
-    if (stockeMovement.length === 0)
+    if (stockMovement.length === 0)
       return res.status(404).json({
         status: "Failed",
         message: "There is no stock movement currently",
@@ -35,8 +35,7 @@ const getSingleStockMovement = async (req, res) => {
     const stockMovementId = req.params.id;
     const stockMovement = await stockMovementModel
       .findById(stockMovementId)
-      .populate("product", "productName -_id email")
-      .populate("performedBy", "-_id username email");
+      .populate("product", "productName -_id")
 
     if (!stockMovement)
       return res.status(404).json({

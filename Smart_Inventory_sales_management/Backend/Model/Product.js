@@ -25,8 +25,8 @@ const productModel = new mongoose.Schema({
     },
     createdBy:{
         type: mongoose.Schema.Types.ObjectId,
-        ref : 'user'
+        ref : 'users'
     }
 })
 
-module.exports = mongoose.model('Products', productModel);
+module.exports = mongoose.model('products', productModel);

@@ -24,6 +24,7 @@ const createSupplier = async (req, res) => {
     res.status(201).json({
       status: "success",
       message: "Supplier is created successfully",
+      newSupplier
     });
   } catch (e) {
     console.error(e);
@@ -44,7 +45,8 @@ const allSuppliers = async (req, res) => {
     })
     res.status(200).json({
       status: "success",
-      message: "Fetched successfully"
+      message: "Fetched successfully",
+      suppliers
     });
   } catch (e) {
      console.error(e);

@@ -393,6 +393,8 @@ http://localhost:3000
 * Advanced Inventory Forecasting
 
 ---
+## API POSTMAN DOCUMENTATION LINK
+* https://documenter.getpostman.com/view/53195349/2sBXwvJ8cH
 
 ## Author
 

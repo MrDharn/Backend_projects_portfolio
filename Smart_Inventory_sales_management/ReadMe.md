@@ -396,6 +396,8 @@ http://localhost:3000
 ## API POSTMAN DOCUMENTATION LINK
 * https://documenter.getpostman.com/view/53195349/2sBXwvJ8cH
 
-## Author
 
-Developed as a Backend API project using the MERN Stack ecosystem.
+-------------
+## Author
+* DHARN
+* Developed as a Backend API project using the MERN Stack ecosystem.

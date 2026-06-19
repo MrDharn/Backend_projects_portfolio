@@ -1,0 +1,48 @@
+.navbar {
+  height: 60px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.menu {
+  display: none;
+  font-size: 20px;
+  background: none;
+  border: none;
+}
+
+.profile {
+  position: relative;
+}
+
+.avatar {
+  width: 35px;
+  height: 35px;
+  background: #2563eb;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: 45px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 10px;
+  width: 150px;
+}
+
+@media (max-width: 768px) {
+  .menu {
+    display: block;
+  }
+}

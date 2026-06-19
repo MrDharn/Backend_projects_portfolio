@@ -9,81 +9,91 @@ const createSales = async (req, res) => {
     const { product, quantitySold, customerName} = req.body;
 
     //make sure product , quantitySold and customerName are not empty
-    if (!product || !customerName || quantitySold === undefined)
+    if (!product || !customerName || !Array.isArray(product) || product.length === 0)
       return res.status(400).json({
         status: "failed",
         message: "Bad request, Fields can not be empty",
       });
 
-    /**
-     * //Check product Availability in Database
-     *check is the product is not out of stock
-     *Check if the number to be sold is greater than the current number of quantity
-     */
-    const checkProductAvailability = await productModel.findOne({productName: product});
-    if (!checkProductAvailability)
-      return res.status(404).json({
-        status: "failed",
-        message: "No such product in Existence",
-      });
+      /**
+       * Making it possible to accept multiple products at once by iteratin over
+       */
 
-    if (checkProductAvailability.quantity === 0)
-      return res.status(404).json({
-        status: "failed",
-        message: "Out of Stock",
-      });
+      const createdSales = [];
+      const updatedProducts = []
 
-    if (checkProductAvailability.quantity < quantitySold)
-      return res.status(400).json({
-        status: "failed",
-        message: "Insufficient stock",
-      });
+      for(let item of product){
+        /**
+         * //Check product Availability in Database
+         *check is the product is not out of stock
+         *Check if the number to be sold is greater than the current number of quantity
+         */
+        const{productName, quantitySold} = item
 
-    const unitPrice = checkProductAvailability.sellingPrice;
+        const checkProductAvailability = await productModel.findOne({productName: productName});
+        if(!checkProductAvailability) return res.status(404).json({status: "failed", message: "No such Product"});
 
-    const oldQuantity = checkProductAvailability.quantity;
-    //Let us add profit made on each sales to the database
-    const profit =
-      (unitPrice - checkProductAvailability.costPrice) * quantitySold;
-    //Now lets create sales
-    const newSales = new salesModel({
-      product: checkProductAvailability._id,
-      quantitySold,
-      unitPrice,
-      totalAmount: quantitySold * unitPrice,
-      profit,
-      customerName,
-      soldBy: req.userInfo._id,
-    });
 
-    await newSales.save();
+        if (checkProductAvailability.quantity === 0)
+          return res.status(404).json({
+            status: "failed",
+            message: "Out of Stock",
+          });
 
-    //Update the product Stocks
-    const updatedProduct = await productModel.findByIdAndUpdate(
-      checkProductAvailability._id,
-      {
-        quantity: oldQuantity - quantitySold,
-      },
-      { returnDocument: "after" },
-    );
+          if (checkProductAvailability.quantity < quantitySold)
+            return res.status(400).json({
+              status: "failed",
+              message: "Insufficient stock",
+            });
+            const unitPrice = checkProductAvailability.sellingPrice;
+            const oldQuantity = checkProductAvailability.quantity;
+            //Let us add profit made on each sales to the database
+            const profit =
+            (unitPrice - checkProductAvailability.costPrice) * quantitySold;
+            //Now lets create sales
+            const newSales = new salesModel({
+              product: checkProductAvailability._id,
+              quantitySold,
+              unitPrice,
+              totalAmount: quantitySold * unitPrice,
+              profit,
+              customerName,
+              soldBy: req.userInfo._id,
+            });
 
-    /**
-     * 
-     * THIS IS FOR THE STOCK MOVEMENT UPDATE
-     */
-    const newStockMovement = new stockMovementModel({
-      product: checkProductAvailability._id,
-      movementType: "OUT",
-      quantity: quantitySold,
-      performedBy: req.userInfo._id,
-    })
+            await newSales.save();
+            createdSales.push(newSales);
 
-    await newStockMovement.save();
 
+            //Update the product Stocks
+            const updatedProduct = await productModel.findByIdAndUpdate(
+              checkProductAvailability._id,
+              {
+                quantity: oldQuantity - quantitySold,
+              },
+              { returnDocument: "after" },
+            );
+
+            updatedProducts.push(updatedProduct);
+
+            /**
+             * 
+             * THIS IS FOR THE STOCK MOVEMENT UPDATE
+             */
+            const newStockMovement = new stockMovementModel({
+              product: checkProductAvailability._id,
+              movementType: "OUT",
+              quantity: quantitySold,
+              performedBy: req.userInfo._id,
+            })
+        
+            await newStockMovement.save();
+
+      }
     res.status(201).json({
       status: "success",
-      sales: newSales,
-      updatedProduct,
+      sales: createdSales,
+      updatedProduct: updatedProducts,
     });
   } catch (e) {
     console.error(e);

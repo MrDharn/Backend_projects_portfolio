@@ -6,10 +6,10 @@ const stockMovementModel = require('../Model/stockMovement')
 //create sales controller
 const createSales = async (req, res) => {
   try {
-    const { product, quantitySold, customerName} = req.body;
+    const { product, customerName} = req.body;
 
     //make sure product , quantitySold and customerName are not empty
-    if (!product || !customerName || !Array.isArray(product) || product.length === 0)
+    if (!product || !Array.isArray(product) || product.length === 0)
       return res.status(400).json({
         status: "failed",
         message: "Bad request, Fields can not be empty",
@@ -57,7 +57,7 @@ const createSales = async (req, res) => {
               unitPrice,
               totalAmount: quantitySold * unitPrice,
               profit,
-              customerName,
+              customerName: customerName|| "Unknown",
               soldBy: req.userInfo._id,
             });
 

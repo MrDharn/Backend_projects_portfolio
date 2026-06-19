@@ -38,6 +38,8 @@ const getBestSellingProduct = async (req, res) => {
           totalQuantitySold: 1,
         },
       },
+      //stage 6
+      {$limit: 10}
     ]);
 
     res.status(200).json({
@@ -65,7 +67,7 @@ const getBestSellingProduct = async (req, res) => {
 
 const getReport = async (req, res) => {
   try {
-    const selectedDate = req.query.date || new Date();
+    const selectedDate = req.query.date ? new Date(req.query.date): new Date();
     const startOfDay = new Date(selectedDate);
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -103,6 +105,7 @@ const getReport = async (req, res) => {
           },
         },
       },
+      {$limit: 10}
     ]);
 
     const reportDetails =
@@ -170,8 +173,10 @@ const getBestStaff = async(req, res)=>{
                 staffName: "$userDetails.username",
                 totalRevenue: 1,
                 totalQuantity: 1
-            }}
+            }},
+            //STAGE 5
 
+            {$limit: 5}
         ])
         // const staff = getBestStaff.length === 0 ? NULL : bestStaff[0]
 

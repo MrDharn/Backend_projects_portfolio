@@ -29,7 +29,7 @@ export default function Login() {
         {error && <p className={styles.error}>{error}</p>}
 
         <input
-          type="email"
+          type="text"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

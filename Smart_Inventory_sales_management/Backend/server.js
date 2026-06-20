@@ -23,6 +23,8 @@ const reportRoute = require('./Routes/reportRoute');
 //declare your port
 const PORT = process.env.PORT || 3000
 
+//use cors
+app.use(cors())
 //Middleware
 app.use(express.json());
 

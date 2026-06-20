@@ -1,5 +1,4 @@
 import API from "./api";
-import API from "./api";
 
 export const getSuppliers = async () => {
   const res = await API.get("/suppliers");

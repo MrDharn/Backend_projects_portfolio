@@ -9,9 +9,9 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import Reports from "./pages/Reports/Reports";
 import Categories from "./pages/Categories/Categories";
 import Suppliers from "./pages/Suppliers/Suppliers";
+import POS from "./pages/POS/POS";
 
 export default function App() {
-  
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
@@ -28,7 +28,7 @@ export default function App() {
         }
       />
       <Route
-        path="/"
+        path="/admin"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminLayout />
@@ -46,7 +46,7 @@ export default function App() {
       />
 
       <Route
-        path="/"
+        path="/pos"
         element={
           <ProtectedRoute allowedRoles={["staff", "manager", "admin"]}>
             <POS />
@@ -55,7 +55,7 @@ export default function App() {
       />
 
       <Route
-        path="/"
+        path="/users"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <Users />
@@ -71,10 +71,14 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-
-      <ProtectedRoute allowedRoles={["admin", "manager"]}>
-        <Suppliers />
-      </ProtectedRoute>
+      <Route
+        path="/suppliers"
+        element={
+          <ProtectedRoute allowedRoles={["admin", "manager"]}>
+            <Suppliers />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

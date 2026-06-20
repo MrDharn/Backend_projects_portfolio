@@ -39,6 +39,8 @@ export default function Sidebar({ open, setOpen }) {
         </Link>
       ))}
       <Link to="/categories">Categories</Link>
+      <Link to="/suppliers">Suppliers</Link>
+      <Link to="/pos">POS</Link>
       <button className={styles.logout} onClick={logout}>
         Logout
       </button>

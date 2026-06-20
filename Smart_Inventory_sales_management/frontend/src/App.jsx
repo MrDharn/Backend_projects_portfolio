@@ -1,14 +1,17 @@
 import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
-
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 import AdminLayout from "./layouts/AdminLayout";
-
+import Users from "./pages/Users/Users";
 import Dashboard from "./pages/Dashboard/Dashboard";
+import Reports from "./pages/Reports/Reports";
+import Categories from "./pages/Categories/Categories";
+import Suppliers from "./pages/Suppliers/Suppliers";
 
 export default function App() {
+  
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
@@ -28,7 +31,7 @@ export default function App() {
         path="/"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
-            <AdminPanel />
+            <AdminLayout />
           </ProtectedRoute>
         }
       />
@@ -50,6 +53,28 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Users />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/categories"
+        element={
+          <ProtectedRoute allowedRoles={["admin", "manager"]}>
+            <Categories />
+          </ProtectedRoute>
+        }
+      />
+
+      <ProtectedRoute allowedRoles={["admin", "manager"]}>
+        <Suppliers />
+      </ProtectedRoute>
     </Routes>
   );
 }

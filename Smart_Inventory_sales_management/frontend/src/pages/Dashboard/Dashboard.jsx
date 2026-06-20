@@ -1,63 +1,149 @@
 import { useEffect, useState } from "react";
-import { getOverview } from "../../services/dashboardService";
-import styles from "./Dashboard.module.css";
+
+import {
+  getOverview,
+  getBestSellingProduct,
+  getBestStaff,
+  getLowStock,
+} from "../../services/dashboardService";
 
 export default function Dashboard() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [overview, setOverview] = useState({});
+  const [bestProduct, setBestProduct] = useState([]);
+  const [bestStaff, setBestStaff] = useState([]);
+  const [lowStock, setLowStock] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await getOverview();
-        setData(res);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    loadDashboard();
   }, []);
 
-  if (loading) return <h2>Loading dashboard...</h2>;
+  const loadDashboard = async () => {
+    const overviewData =
+      await getOverview();
+
+    const productData =
+      await getBestSellingProduct();
+
+    const staffData =
+      await getBestStaff();
+
+    const lowStockData =
+      await getLowStock();
+
+    setOverview(overviewData);
+
+    setBestProduct(
+      productData.bestSellingProduct
+    );
+
+    setBestStaff(staffData.bestStaff);
+
+    setLowStock(
+      lowStockData.lowStockedProducts ||
+      []
+    );
+  };
 
   return (
-    <div className={styles.container}>
-      <h2>SIMS Overview</h2>
+    <div>
+      <h1>Dashboard</h1>
 
-      <div className={styles.grid}>
-        <div className={styles.card}>
-          <h3>Products</h3>
-          <p>{data.totalProducts}</p>
+      {/* Cards */}
+
+      <div>
+        <div>
+          Products:
+          {overview.totalProducts}
         </div>
 
-        <div className={styles.card}>
-          <h3>Categories</h3>
-          <p>{data.totalCategories}</p>
+        <div>
+          Categories:
+          {overview.totalCategories}
         </div>
 
-        <div className={styles.card}>
-          <h3>Suppliers</h3>
-          <p>{data.totalSupplier}</p>
+        <div>
+          Revenue:
+          ₦{overview.totalRevenue}
         </div>
 
-        <div className={styles.card}>
-          <h3>Total Sales</h3>
-          <p>{data.totalSales}</p>
-        </div>
-
-        <div className={styles.card}>
-          <h3>Total Revenue</h3>
-          <p>₦{data.totalRevenue}</p>
-        </div>
-
-        <div className={styles.card}>
-          <h3>Total Profit</h3>
-          <p>₦{data.totalProfit}</p>
+        <div>
+          Profit:
+          ₦{overview.totalProfit}
         </div>
       </div>
+
+      {/* Best Product */}
+
+      <section>
+        <h2>
+          Best Selling Product
+        </h2>
+
+        {bestProduct.length > 0 && (
+          <>
+            <p>
+              {
+                bestProduct[0]
+                  .product
+              }
+            </p>
+
+            <p>
+              Sold:
+              {
+                bestProduct[0]
+                  .totalQuantitySold
+              }
+            </p>
+          </>
+        )}
+      </section>
+
+      {/* Best Staff */}
+
+      <section>
+        <h2>Best Staff</h2>
+
+        {bestStaff.length > 0 && (
+          <>
+            <p>
+              {
+                bestStaff[0]
+                  .staffName
+              }
+            </p>
+
+            <p>
+              Revenue:
+              ₦
+              {
+                bestStaff[0]
+                  .totalRevenue
+              }
+            </p>
+          </>
+        )}
+      </section>
+
+      {/* Low Stock */}
+
+      <section>
+        <h2>
+          Low Stock Alerts
+        </h2>
+
+        {lowStock.map(
+          (product) => (
+            <div
+              key={product._id}
+            >
+              {product.productName}
+              {" - "}
+              {product.quantity}
+            </div>
+          )
+        )}
+      </section>
     </div>
   );
 }

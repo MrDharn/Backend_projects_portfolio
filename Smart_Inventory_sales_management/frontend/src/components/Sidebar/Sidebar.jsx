@@ -18,10 +18,7 @@ export default function Sidebar({ open, setOpen }) {
     { name: "Reports", path: "/reports" },
   ];
 
-  const adminMenu = [
-    ...menu,
-    { name: "Users", path: "/users" },
-  ];
+  const adminMenu = [...menu, { name: "Users", path: "/users" }];
 
   const finalMenu = role === "admin" ? adminMenu : menu;
 
@@ -34,16 +31,14 @@ export default function Sidebar({ open, setOpen }) {
           key={item.path}
           to={item.path}
           className={
-            location.pathname === item.path
-              ? styles.active
-              : styles.link
+            location.pathname === item.path ? styles.active : styles.link
           }
           onClick={() => setOpen(false)}
         >
           {item.name}
         </Link>
       ))}
-
+      <Link to="/categories">Categories</Link>
       <button className={styles.logout} onClick={logout}>
         Logout
       </button>

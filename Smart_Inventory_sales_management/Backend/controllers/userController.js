@@ -58,8 +58,9 @@ const updateUserProfile = async (req, res) => {
         const id = req.params.id;
         const {email,username, role} = req.body
 
-
-        const updatedUser = await userModel.findByIdAndUpdate(id, {email,username, role}, {returnDocument: 'after'})
+        const allowedRoles = ['Staff', 'Admin', 'Manager']
+        if(!allowedRoles.includes(role)) return res.status('400').json({status: "failed", message: "Role you entered is not allowed"})
+        const updatedUser = await userModel.findByIdAndUpdate(id, {email,username, role}, {returnDocument: 'after'}).select('-password')
 
         if(!updatedUser) return res.status(404).json({
             status: 'failed',

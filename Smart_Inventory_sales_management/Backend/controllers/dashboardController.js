@@ -9,7 +9,7 @@ const getOverview = async (req, res)=>{
         const totalProducts = await productModel.countDocuments({})
         const totalSupplier = await supplierModel.countDocuments({})
         const totalSales = await salesModel.countDocuments({})
-
+        
 
         const productSalesHistory = await salesModel.aggregate([
             //Stage1

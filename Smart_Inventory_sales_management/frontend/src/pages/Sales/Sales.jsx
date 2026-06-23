@@ -43,11 +43,15 @@ export default function Sales() {
             <h3>{product.productName}</h3>
             <p>₦{product.sellingPrice}</p>
 
-            <button onClick={() => addToCart(product)}>
-              Add to Cart
-            </button>
+            <button onClick={() => addToCart(product)}>Add to Cart</button>
           </div>
         ))}
+      </div>
+
+      <div className={styles.layout}>
+        <div className={styles.left}>{/* SEARCH PRODUCTS */}</div>
+
+        <CartSidebar />
       </div>
     </div>
   );

@@ -12,23 +12,34 @@ export function AuthProvider({ children }) {
     const savedToken = localStorage.getItem("token");
 
     if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (error) {
+        console.error("Invalid user JSON:", error);
+        setUser(null);
+        localStorage.removeItem("user");
+      }
       setToken(savedToken);
     }
   }, []);
 
   // LOGIN
   const login = async (email, password) => {
-    const res = await API.post("/auth/login", {
-      email,
-      password,
+    const res = await API.post("/auth/login", { email, password });
+
+    const token = res.data.createToken;
+    setToken(token);
+    localStorage.setItem("token", token);
+
+    // Fetch user details using CRUD controller
+    const userRes = await API.get("/users/me", {
+      headers: { Authorization: `Bearer ${token}` },
     });
 
-    setUser(res.data.user);
-    setToken(res.data.token);
+    setUser(userRes.data);
+    localStorage.setItem("user", JSON.stringify(userRes.data));
 
-    localStorage.setItem("user", JSON.stringify(res.data.user));
-    localStorage.setItem("token", res.data.token);
+    console.log("Logged in user:", userRes.data);
   };
 
   // REGISTER
@@ -39,7 +50,8 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.clear();
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
   return (

@@ -4,17 +4,17 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   const token = localStorage.getItem("token");
   const savedUser = localStorage.getItem("user");
   let user = null;
-  console.log(token, savedUser);
+  
 
   try {
     user =
-      savedUser && savedUser !== "undefined" ? JSON.parse(savedUser) : null;
+    savedUser && savedUser !== "undefined" ? JSON.parse(savedUser) : null;
   } catch (error) {
     console.error("Invalid user JSON:", error);
     localStorage.removeItem("user");
   }
-
-
+  
+  
   // 1. NOT LOGGED IN
   if (!token) {
     return <Navigate to="/login" />;
@@ -26,6 +26,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
       return <Navigate to="/dashboard" />;
     }
   }
-
+  console.log(user.role)
+  
   return children;
 }

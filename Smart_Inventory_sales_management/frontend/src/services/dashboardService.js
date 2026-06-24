@@ -21,7 +21,7 @@ export const getBestStaff = async () => {
 
 export const getLowStock = async () => {
   const res = await API.get(
-    "/product/low-stock"
+    "/products/low-stock"
   );
   return res.data;
 };

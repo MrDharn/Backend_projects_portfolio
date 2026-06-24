@@ -180,16 +180,11 @@ const getLowStockedProducts = async (req, res) => {
     const lowStockedProducts = await productModel.find({
       quantity: { $lt: 10 },
     });
-    if (lowStockedProducts.length === 0)
-      return res.status(404).json({
-        status: "failed",
-        message: "There is no Low stock currently",
-      });
-
+  
     res.status(200).json({
       status: "success",
       message: "Low stock Products fetched successfully",
-      lowStockedProducts,
+      lowStockedProducts: lowStockedProducts.length === 0 ? []: lowStockedProducts,
     });
   } catch (e) {
     console.error(e);

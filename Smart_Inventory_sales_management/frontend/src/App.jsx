@@ -10,7 +10,7 @@ import Reports from "./pages/Reports/Reports";
 import Categories from "./pages/Categories/Categories";
 import Suppliers from "./pages/Suppliers/Suppliers";
 import POS from "./pages/POS/POS";
-
+import Products from "./pages/Products/Products";
 export default function App() {
   return (
     <Routes>
@@ -30,7 +30,7 @@ export default function App() {
       <Route
         path="/admin"
         element={
-          <ProtectedRoute allowedRoles={["admin"]}>
+          <ProtectedRoute allowedRoles={["Admin"]}>
             <AdminLayout />
           </ProtectedRoute>
         }
@@ -39,7 +39,7 @@ export default function App() {
       <Route
         path="/reports"
         element={
-          <ProtectedRoute allowedRoles={["manager", "admin"]}>
+          <ProtectedRoute allowedRoles={["Manager", "Admin"]}>
             <Reports />
           </ProtectedRoute>
         }
@@ -48,7 +48,7 @@ export default function App() {
       <Route
         path="/pos"
         element={
-          <ProtectedRoute allowedRoles={["staff", "manager", "admin"]}>
+          <ProtectedRoute allowedRoles={["Staff", "Manager", "Admin"]}>
             <POS />
           </ProtectedRoute>
         }
@@ -57,7 +57,7 @@ export default function App() {
       <Route
         path="/users"
         element={
-          <ProtectedRoute allowedRoles={["admin"]}>
+          <ProtectedRoute allowedRoles={["Admin"]}>
             <Users />
           </ProtectedRoute>
         }
@@ -66,7 +66,7 @@ export default function App() {
       <Route
         path="/categories"
         element={
-          <ProtectedRoute allowedRoles={["admin", "manager"]}>
+          <ProtectedRoute allowedRoles={["Admin", "Manager"]}>
             <Categories />
           </ProtectedRoute>
         }
@@ -74,8 +74,17 @@ export default function App() {
       <Route
         path="/suppliers"
         element={
-          <ProtectedRoute allowedRoles={["admin", "manager"]}>
+          <ProtectedRoute allowedRoles={["Admin", "Manager"]}>
             <Suppliers />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/products"
+        element={
+          <ProtectedRoute allowedRoles={["Admin", "Manager","Staff"]}>
+            <Products />
           </ProtectedRoute>
         }
       />

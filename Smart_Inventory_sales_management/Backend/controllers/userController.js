@@ -122,8 +122,7 @@ const deleteUserProfile = async (req, res) => {
 
   const getMe = async(req, res)=>{
     try{
-      const {email} = req.body
-      const user = await userModel.findOne({email: email}).select('-password')
+      const user = await userModel.findOne({email: req.userInfo.email}).select('-password')
       console.log(user)
       if(!user) return res.status(404).json({status: "failed", message: "user not found"})
         res.status(200).json({

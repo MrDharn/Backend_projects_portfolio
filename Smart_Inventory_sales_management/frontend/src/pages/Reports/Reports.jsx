@@ -13,6 +13,8 @@ export default function Reports() {
     setReport(res.report);
   };
 
+  
+
   const loadBestProducts = async () => {
     const res = await getBestProducts();
     setBestProducts(res.bestSellingProduct);

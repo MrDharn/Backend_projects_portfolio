@@ -1,149 +1,56 @@
-import { useEffect, useState } from "react";
+import React from "react";
+import RecentSales from "./RecentSales";
+import LowStock from "./LowStock";
+import StatCard from "../../components/ui/StatCard";
+import DashboardHeader from "./DashboardHeader";
 
 import {
-  getOverview,
-  getBestSellingProduct,
-  getBestStaff,
-  getLowStock,
-} from "../../services/dashboardService";
+  FaBoxes,
+  FaMoneyBillWave,
+  FaShoppingCart,
+  FaExclamationTriangle,
+} from "react-icons/fa";
 
-export default function Dashboard() {
-  const [overview, setOverview] = useState({});
-  const [bestProduct, setBestProduct] = useState([]);
-  const [bestStaff, setBestStaff] = useState([]);
-  const [lowStock, setLowStock] = useState([]);
-
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  const loadDashboard = async () => {
-    const overviewData =
-      await getOverview();
-
-    const productData =
-      await getBestSellingProduct();
-
-    const staffData =
-      await getBestStaff();
-
-    const lowStockData =
-      await getLowStock();
-
-    setOverview(overviewData);
-
-    setBestProduct(
-      productData.bestSellingProduct
-    );
-
-    setBestStaff(staffData.bestStaff);
-
-    setLowStock(
-      lowStockData.lowStockedProducts ||
-      []
-    );
-  };
-
+const Dashboard = () => {
   return (
-    <div>
-      <h1>Dashboard</h1>
+    <>
+        <DashboardHeader /> 
+         <div className="mb-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Products"
+          value="352"
+          icon={FaBoxes}
+          color="#2563EB"
+        />
 
-      {/* Cards */}
+        <StatCard
+          title="Revenue"
+          value="₦3,250,000"
+          icon={FaMoneyBillWave}
+          color="#22C55E"
+        />
 
-      <div>
-        <div>
-          Products:
-          {overview.totalProducts}
-        </div>
+         <StatCard
+          title="Sales"
+          value="148"
+          icon={FaShoppingCart}
+          color="#F59E0B"
+        />
 
-        <div>
-          Categories:
-          {overview.totalCategories}
-        </div>
-
-        <div>
-          Revenue:
-          ₦{overview.totalRevenue}
-        </div>
-
-        <div>
-          Profit:
-          ₦{overview.totalProfit}
-        </div>
+         <StatCard
+          title="Low Stock"
+          value="12"
+          icon={FaExclamationTriangle}
+          color="#EF4444"
+        />
       </div>
 
-      {/* Best Product */}
-
-      <section>
-        <h2>
-          Best Selling Product
-        </h2>
-
-        {bestProduct.length > 0 && (
-          <>
-            <p>
-              {
-                bestProduct[0]
-                  .product
-              }
-            </p>
-
-            <p>
-              Sold:
-              {
-                bestProduct[0]
-                  .totalQuantitySold
-              }
-            </p>
-          </>
-        )}
-      </section>
-
-      {/* Best Staff */}
-
-      <section>
-        <h2>Best Staff</h2>
-
-        {bestStaff.length > 0 && (
-          <>
-            <p>
-              {
-                bestStaff[0]
-                  .staffName
-              }
-            </p>
-
-            <p>
-              Revenue:
-              ₦
-              {
-                bestStaff[0]
-                  .totalRevenue
-              }
-            </p>
-          </>
-        )}
-      </section>
-
-      {/* Low Stock */}
-
-      <section>
-        <h2>
-          Low Stock Alerts
-        </h2>
-
-        {lowStock.map(
-          (product) => (
-            <div
-              key={product._id}
-            >
-              {product.productName}
-              {" - "}
-              {product.quantity}
-            </div>
-          )
-        )}
-      </section>
-    </div>
+       <div className="grid gap-6 lg:grid-cols-2">
+        <RecentSales />
+        <LowStock />
+      </div>
+    </>
   );
-}
+};
+
+export default Dashboard;

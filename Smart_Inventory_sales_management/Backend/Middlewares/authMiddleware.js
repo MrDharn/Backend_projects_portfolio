@@ -17,7 +17,6 @@ const authController = async(req, res, next)=>{
         })
 
         req.userInfo = decodedToken
-        console.log("Token is decoded successfully:", decodedToken);
         next()
     } catch(e){
         console.error(e);

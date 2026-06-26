@@ -1,20 +1,18 @@
-import Sidebar from "../components/Sidebar/Sidebar";
-import Navbar from "../components/Navbar/Navbar";
-import styles from "./DashboardLayout.module.css";
+import React from "react";
+import Navbar from "../components/layout/Navbar";
+import Sidebar from "../components/layout/Sidebar";
 
-import { useState } from "react";
-
-export default function DashboardLayout({ children }) {
-  const [open, setOpen] = useState(false);
-
+const DashboardLayout = ({ children }) => {
   return (
-    <div className={styles.container}>
-      <Sidebar open={open} setOpen={setOpen} />
+    <div className="flex min-h-screen bg-slate-100">
+      <Sidebar />
 
-      <div className={styles.main}>
-        <Navbar setOpen={setOpen} />
-        <div className={styles.content}>{children}</div>
+      <div className="flex flex-1 flex-col">
+        <Navbar />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );
-}
+};
+
+export default DashboardLayout;

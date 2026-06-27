@@ -9,13 +9,13 @@ const ProductRow = ({ product }) => {
     <tr className="border-b hover:bg-gray-50">
       <td className="px-4 py-3">📦</td>
 
-      <td>{product.name}</td>
+      <td>{product.productName}</td>
 
-      <td>{product.category}</td>
+      <td>{product.categoryName}</td>
 
-      <td>{product.price}</td>
+      <td>{product.sellingPrice}</td>
 
-      <td>{product.stock}</td>
+      <td>{product.stockQuantity}</td>
 
       <td>
         <span

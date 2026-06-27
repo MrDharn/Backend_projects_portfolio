@@ -16,9 +16,9 @@ const ProductToolbar = () => {
           <option>All Status</option>
         </select>
 
-        <button className="rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700">
+        {/* <button onClick={() => setOpen(true)} className="rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700">
           Add Product
-        </button>
+        </button> */}
       </div>
     </div>
   );

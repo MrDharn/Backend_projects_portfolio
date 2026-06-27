@@ -1,30 +1,6 @@
 import ProductRow from "./ProductRow";
 
-const products = [
-  {
-    id: 1,
-    name: "Rice",
-    category: "Food",
-    price: "₦3500",
-    stock: 120,
-  },
-  {
-    id: 2,
-    name: "Milk",
-    category: "Drinks",
-    price: "₦1800",
-    stock: 10,
-  },
-  {
-    id: 3,
-    name: "Sugar",
-    category: "Food",
-    price: "₦2500",
-    stock: 65,
-  },
-];
-
-const ProductTable = () => {
+const ProductTable = ({products}) => {
   return (
     <div className="overflow-hidden rounded-xl bg-white shadow-sm">
       <table className="w-full">

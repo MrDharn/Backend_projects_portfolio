@@ -1,3 +1,5 @@
+import ProductModal from "../../pages/products/ProductModal";
+
 const Modal = ({ title, children, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -9,7 +11,7 @@ const Modal = ({ title, children, onClose }) => {
             onClick={onClose}
             className="text-2xl"
           >
-            ×
+            X
           </button>
         </div>
 

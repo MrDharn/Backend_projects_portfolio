@@ -92,7 +92,7 @@ const ProductForm = ({onSubmit}) => {
 
       <div className="flex justify-end gap-3">
 
-        <Button variant="secondary">
+        <Button variant="secondary" type="button">
           Cancel
         </Button>
 

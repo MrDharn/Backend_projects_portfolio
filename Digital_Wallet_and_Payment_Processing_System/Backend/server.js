@@ -11,6 +11,7 @@ dns.setServers([
 //Import functions
 const connectDB = require('./utils/db')
 const authRoutes = require('./routes/authRoutes')
+const walletRoutes = require('./routes/walletRoutes')
 
 app.use(express.json());
 
@@ -24,6 +25,9 @@ app.get('/', (req, res)=> {
     res.send("Digital Wallet and Payment Gateway")
 })
 app.use('/api/v1/auth', authRoutes)
+
+//wallet Route
+app.use('/api/v1/wallet', walletRoutes)
 const startServer = async ()=>{
     try{
         await connectDB();

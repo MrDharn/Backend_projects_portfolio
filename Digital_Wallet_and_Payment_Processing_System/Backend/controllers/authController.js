@@ -1,4 +1,5 @@
 //Models 
+
 const userModel = require("../Models/Users");
 const walletModel = require('../Models/Wallet')
 //Encryption
@@ -12,7 +13,7 @@ const Register = async (req, res) => {
     const { name, password, email, phone } = req.body;
 
     if (!name || !password || !email ||!phone)
-      return res.status(403).json({
+      return res.status(400).json({
         status: "failed",
         message: "Invalid Inputs",
       });
@@ -29,15 +30,16 @@ const Register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = new userModel({ name, email, password: hashedPassword });
+    const user = new userModel({ name, email, password: hashedPassword, phone });
     await user.save();
 
     //Generate Random Account Number that is unique
-    let walletNumber = Math.floor(Math.random() * 10000000000)
-    const checkWalletNumber = await walletModel.findOne({walletNumber: walletNumber})
+    let walletNumber = Math.floor(Math.random() * 9000000000) + 1000000000
+    let checkWalletNumber = await walletModel.findOne({walletNumber: walletNumber})
 
-    while(walletNumber === checkWalletNumber.walletNumber){
-        walletNumber = Math.floor(Math.random() * 10000000000)
+    while(checkWalletNumber){
+        walletNumber = Math.floor(Math.random() * 9000000000) + 1000000000
+        checkWalletNumber = await walletModel.findOne({walletNumber: walletNumber})
     }
 
     const createNewWallet = new walletModel({userId: user._id, walletNumber})
@@ -69,7 +71,7 @@ const Login = async (req, res) => {
 
     const user = await userModel.findOne({ email: email });
     if (!user)
-      return res.status(403).json({
+      return res.status(400).json({
         status: "failed",
         message: "This email is not registered",
       });
@@ -78,26 +80,24 @@ const Login = async (req, res) => {
 
     const comparePassword = await bcrypt.compare(password, user.password);
     if (!comparePassword)
-      return res.status(403).json({
+      return res.status(400).json({
         status: "failed",
         message: "Incorrect password",
       });
 
     // Generate Token
 
-    const token = await jwt.sign(
-      { email, role: user.role, name: user.name },
-      { JWT_SECRET_KEY },
+    const token =  jwt.sign(
+      { id: user._id, email, role: user.role, name: user.name },
+      JWT_SECRET_KEY,
       { expiresIn: "60m" },
     );
 
-    const refreshToken = await jwt.sign({
+    const refreshToken = jwt.sign({
         email:user.email, role:user.role, name:user.name
-    }, {JWT_REFRESH_TOKEN}, {expiresIn: '7d'})
+    }, JWT_REFRESH_TOKEN, {expiresIn: '7d'})
 
     console.log(refreshToken);
-
-    req.user = token
 
     res.status(200).json({
         status: "successful",
@@ -112,4 +112,57 @@ const Login = async (req, res) => {
     });
   }
 };
-module.exports = { Register, Login };
+
+const ChangePassword = async(req, res)=>{
+  try{
+    const {oldPassword, newPassword, confirmPassword} = req.body;
+
+    const user = await userModel.findById(req.user._id);
+    
+    if(!userser) return res.status(404).json({
+      status: "failed",
+      message: "invalid user"
+    })
+
+    if(!oldPassword|| !newPassword || !confirmPassword) return res.status(400).json({
+      status: "failed",
+      message: "invalid input"
+    })
+    
+    const checkOldPassword = await bcrypt.compare(oldPassword, user.password);
+
+    if(!checkOldPassword)return res.status(403).json({
+      status: "failed",
+      message: "Old password is not correct"
+    })
+    
+    //Check if Password matches 
+    if(newPassword !== confirmPassword) return res.status(400).json({
+      status: "failed",
+      message: "Passwords mismatch"
+    })
+    
+    if(oldPassword === newPassword) return res.status(400).json({
+      status: "failed",
+      message: "Old password is same as new passwor"
+    })
+    
+    //hash the password before saving
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(newPassword, salt)
+    
+    user.password = hashedPassword
+    await user.save()
+    res.status(200).json({
+      status: "success",
+      message: "Password changed successfully", 
+    })
+  }catch(e){
+    console.error(e);
+    res.status(500).json({
+      status: "Failed",
+      message: "Something went wrong"
+    })
+  }
+}
+module.exports = { Register, Login , ChangePassword};

@@ -16,9 +16,15 @@ const WalletSchema = new mongoose.Schema({
         enum: ['NGN', 'USD'],
         default: 'NGN'
     },
-    pin_hash: {
-        type: Number
+    pin: {
+        type: String,
+        default: null,
+        select: false
     },
+    isPinSet: {
+        type: Boolean,
+        default: false
+    }
 
 }, {timestamps: true})
 

@@ -4,7 +4,9 @@ const RefreshTokenSchema = new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'users'
     },
-    refreshToken,
+    refreshToken: {
+        type: String
+    },
     revoked: {
         type: Boolean,
         default: false

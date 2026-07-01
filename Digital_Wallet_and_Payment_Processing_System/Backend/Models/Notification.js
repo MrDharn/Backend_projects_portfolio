@@ -6,10 +6,10 @@ const NotificationSchema = new mongoose.Schema({
         ref: 'users'
     },
     type_of_transaction: {
-        enum: ['deposit','transfer', 'withdrawal','password_reset']
+        enum: ['DEPOSIT', 'WITHDRAWAL','PASSWORD_RESET']
     },
     status: {
-        enum: ['read','unread']
+        enum: ['READ','UNREAD']
     }
 },{timestamps:true})
 

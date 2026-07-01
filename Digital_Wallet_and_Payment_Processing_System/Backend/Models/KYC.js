@@ -12,7 +12,7 @@ const KYC_Schema = new mongoose.Schema({
         type: String
     },
     status: {
-        enum: ['pending', 'approved', 'rejected']
+        enum: ['PENDING', 'APPROVED', 'REJECTED']
     }
 },{timestamps: true})
 

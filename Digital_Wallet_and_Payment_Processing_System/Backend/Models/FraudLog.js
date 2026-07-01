@@ -13,7 +13,7 @@ const FraudLogSchema = new mongoose.Schema({
         type: String
     },
     status: {
-        enum: ['investigating', 'resolved']
+        enum: ['INVESTIGATING', 'RESOLVED']
     }
 }, {timestamps: true})
 

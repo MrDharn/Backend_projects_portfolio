@@ -5,8 +5,12 @@ const BankAccountSchema = new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'users'
     },
-    bankName,
-    accountNumber,
+    bankName: {
+        type: String
+    },
+    accountNumber: {
+        type: Number
+    },
     verified: {
         type: Boolean,
         default: false

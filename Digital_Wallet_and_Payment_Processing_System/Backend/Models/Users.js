@@ -14,12 +14,12 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['admin','customer','merchant'],
-        default: 'customer'
+        enum: ['ADMIN','CUSTOMER','MERCHANT'],
+        default: 'CUSTOMER'
     },
     KYC_STATUS:{
         type: String,
-        enum: ['pending','verified','rejected'],
+        enum: ['PENDING','VERIFIED','REJECTED'],
         default: 'pending'
     },
     token: {

@@ -5,12 +5,18 @@ const TransactionSchema = new mongoose.Schema({
         ref: 'wallet'
     },
     type_of_transaction: {
-        enum: ['deposit','withdrawal','transfer','merchant_payment']
+        enum: ['DEPOSIT','WITHRAWAL','MERCHANT_PAYMENT']
     },
     status: {
-        enum: ['pending','success','failed']
+        enum: ['PENDING','SUCCESS','FAILED']
     },
-    referenceId,
+    referenceId:{
+        type: String
+    },
+    idempotencyKey:{
+        type: String,
+    },
+
     description: {
         type: String
     }

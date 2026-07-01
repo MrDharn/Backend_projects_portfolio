@@ -5,14 +5,18 @@ const MerchantSchema = new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'users'
     },
-    businessName,
-    businessEmail,
+    businessName: {
+        type: String
+    }, 
+    businessEmail: {
+        type: String
+    },
     wallerId: {
         type: mongoose.Types.ObjectId,
         ref: 'wallet'
     },
     status: {
-        enum: ['active', 'suspended']
+        enum: ['ACTIVE', 'SUSPENDED']
     }
 }, {timestamps: true})
 

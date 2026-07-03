@@ -4,6 +4,10 @@ const TransactionSchema = new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'wallet'
     },
+    userId:{
+        type: mongoose.Types.ObjectId,
+        ref: 'users'
+    },
     type_of_transaction: {
         enum: ['DEPOSIT','WITHRAWAL','MERCHANT_PAYMENT']
     },
@@ -13,11 +17,10 @@ const TransactionSchema = new mongoose.Schema({
     referenceId:{
         type: String
     },
-    idempotencyKey:{
-        type: String,
-    },
-
     description: {
+        type: String
+    },
+    amount: {
         type: String
     }
 },{timestamps: true})

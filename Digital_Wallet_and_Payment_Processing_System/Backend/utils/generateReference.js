@@ -1,6 +1,6 @@
 const randomUUID = require('crypto');
 
-async function generateReference(){
+ function generateReference(){
     return `DH-${Date.now()}-${randomUUID.randomBytes(4).toString('hex')}`
 }
 

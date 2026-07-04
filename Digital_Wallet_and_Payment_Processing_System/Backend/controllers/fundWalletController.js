@@ -45,7 +45,7 @@ const fundWallet = async(req, res)=>{
 
 
         res.status(200).json({
-            status: verifyReference.data.status,
+            status: "success",
             message:"Transaction is initialized",
             transactionId: transaction._id,
             reference: paystackService.data.reference
@@ -63,10 +63,10 @@ const fundWallet = async(req, res)=>{
 
 const verificationController = async(req, res)=> {
     try{
-        const transactionModel = await transactionModel.findOne({userId: req.user._id})
-        const walletModel = await walletModel.findOne({userId: req.user._id})
+        const transaction = await transactionModel.findOne({userId: req.user._id})
+        const wallet = await walletModel.findOne({userId: req.user._id})
 
-        if(!transaction || !walletModel) return res.status(404).json({
+        if(!transaction || !wallet) return res.status(404).json({
             status:"failed",
             message: "Cannot find wallet or transaction"
         });
@@ -76,17 +76,17 @@ const verificationController = async(req, res)=> {
         const verification = await verifyReference(transactionModel.referenceId);
 
         if(verification.data.reference === 'pending'){
-            transactionModel.status = "PENDING"
+            transaction.status = "PENDING"
         }
 
         if(verification.data.reference === "success"){
-            transactionModel.status = "SUCCESS"
-            walletModel.balance = (Number(transactionModel.amount) + initialWalletBalance)
+            transaction.status = "SUCCESS"
+            wallet.balance = (Number(transactionModel.amount) + initialWalletBalance)
 
         }
 
         if(verifcation.data.reference === 'failed'){
-            transactionModel.status = "FAILED"
+            transaction.status = "FAILED"
         }
     }catch(e){
         console.error(e);

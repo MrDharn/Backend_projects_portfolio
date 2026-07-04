@@ -23,7 +23,7 @@ const initiateTransaction = async(email, amount, reference)=>{
 
 const verifyReference = async(reference)=> {
     try{
-        const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {},{
+        const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`,{
             headers: {
                 Authorization: `Bearers ${PAYSTACK_SECRET_KEY}`,
                 "Content-Type": 'application/json'

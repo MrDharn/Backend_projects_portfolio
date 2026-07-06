@@ -99,6 +99,29 @@ const verificationController = async (req, res) => {
 
     const verification = await verifyReference(transaction.referenceId);
 
+    //Check the integrity of the transaction using reference ID
+    const payment = verification.data
+    if(payment.reference !== transaction.referenceId){
+        session.abortTransaction()
+        return res.status(400).json({
+            status: "failed",
+            message: "ReferenceId does not match"
+        })
+    }
+
+    // Verify that the amount is the same
+
+    if(payment.amount !== (transaction.amount * 100)){
+        session.abortTransaction()
+        return res.status(400).json({
+            status: "failed",
+            message: "amount processed is not Valid"
+        })
+    }
+
+
+    //perform transaction and update the status of the transaction
+    
     if (verification.data.status === "success") {
       wallet.balance = Number(transaction.amount) + initialWalletBalance;
       transaction.status = "SUCCESS";

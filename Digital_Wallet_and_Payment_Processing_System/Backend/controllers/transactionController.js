@@ -138,3 +138,5 @@ const initiateTransaction = async (req, res) => {
     await session.endSession();
   }
 };
+
+module.exports = {initiateTransaction}

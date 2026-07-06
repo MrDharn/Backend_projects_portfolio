@@ -9,7 +9,7 @@ const TransactionSchema = new mongoose.Schema({
         ref: 'users'
     },
     type_of_transaction: {
-        enum: ['DEPOSIT','WITHRAWAL','MERCHANT_PAYMENT']
+        enum: ['DEPOSIT','WITHRAWAL','MERCHANT_PAYMENT','DEBIT', 'CREDIT']
     },
     status: {
         enum: ['PENDING','SUCCESS','FAILED']

@@ -72,15 +72,20 @@ const fundWallet = async (req, res) => {
 
 const verificationController = async (req, res) => {
   const session = await mongoose.startSession();
+ session.startTransaction();
 
   try {
     const { reference } = req.params;
 
-    const transaction = await transactionModel.findOne({ referenceId: reference }).session(session);
-    const wallet = await walletModel.findByOne({ userId: req.user._id }).session(session);
+    const transaction = await transactionModel
+      .findOne({ referenceId: reference })
+      .session(session);
+    const wallet = await walletModel
+      .findByOne({ userId: req.user._id })
+      .session(session);
 
     if (!transaction || !wallet) {
-      session.abortTransaction();
+      await session.abortTransaction();
       return res.status(404).json({
         status: "failed",
         message: "Cannot find wallet or transaction",
@@ -88,7 +93,7 @@ const verificationController = async (req, res) => {
     }
 
     if (transaction.status === "SUCCESS") {
-      session.abortTransaction();
+      await session.abortTransaction();
       return res.status(404).json({
         status: "failed",
         message: "This transaction is already processed",
@@ -100,49 +105,60 @@ const verificationController = async (req, res) => {
     const verification = await verifyReference(transaction.referenceId);
 
     //Check the integrity of the transaction using reference ID
-    const payment = verification.data
-    if(payment.reference !== transaction.referenceId){
-        session.abortTransaction()
-        return res.status(400).json({
-            status: "failed",
-            message: "ReferenceId does not match"
-        })
+    const payment = verification.data;
+    if (payment.reference !== transaction.referenceId) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: "failed",
+        message: "ReferenceId does not match",
+      });
     }
 
     // Verify that the amount is the same
 
-    if(payment.amount !== (transaction.amount * 100)){
-        session.abortTransaction()
-        return res.status(400).json({
-            status: "failed",
-            message: "amount processed is not Valid"
-        })
-    }
-
-
-    //perform transaction and update the status of the transaction
-    
-    if (verification.data.status === "success") {
-      wallet.balance = Number(transaction.amount) + initialWalletBalance;
-      transaction.status = "SUCCESS";
-      await transaction.save({session})
-      await wallet.save({session})
-      await session.commitTransaction()
-
-        return res.status(200).json({
-        status: "success",
-        message: `You have been credited with ${transaction.amount}`,
+    if (payment.amount !== transaction.amount * 100) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: "failed",
+        message: "amount processed is not Valid",
       });
     }
 
-    transaction.status = "FAILED"
-    await transaction.save({session});
-    await session.commitTransaction()
+
+    //Check for currency Integrity
+    if(payment.currency !== wallet.currency){
+        await session.abortTransaction()
+        return res.status(400).json({
+            status: "failed",
+            message: "currency mismatch"
+        })
+    }
+
+    //perform transaction and update the status of the transaction
+
+    if (verification.data.status === "success") {
+      wallet.balance = Number(transaction.amount) + initialWalletBalance;
+      transaction.status = "SUCCESS";
+      await transaction.save({ session });
+      await wallet.save({ session });
+      await session.commitTransaction();
+
+      return res.status(200).json({
+        status: "success",
+        message: `You have been credited with ${transaction.amount}`,
+        balance: wallet.balance,
+        transaction
+      });
+    }
+
+    transaction.status = "FAILED";
+    await transaction.save({ session });
+    await session.commitTransaction();
 
     return res.status(400).json({
-        status: "failed",
-        message: "The transaction failed"
-    })
+      status: "failed",
+      message: "The transaction failed",
+    });
   } catch (e) {
     session.abortTransaction();
     console.error(e);
@@ -155,4 +171,4 @@ const verificationController = async (req, res) => {
   }
 };
 
-module.exports = { fundWallet };
+module.exports = { fundWallet , verificationController};

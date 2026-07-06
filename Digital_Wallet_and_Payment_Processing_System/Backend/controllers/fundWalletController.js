@@ -1,100 +1,135 @@
-const {initiateTransaction, verifyReference} = require('../utils/payStackService')
-const generateReference = require('../utils/generateReference')
-const userModel = require('../Models/Users')
-const transactionModel = require("../Models/Transaction")
-const walletModel = require('../Models/Wallet')
+const mongoose = require("mongoose");
 
+const {
+  initiateTransaction,
+  verifyReference,
+} = require("../utils/payStackService");
+const generateReference = require("../utils/generateReference");
+const userModel = require("../Models/Users");
+const transactionModel = require("../Models/Transaction");
+const walletModel = require("../Models/Wallet");
 
-const fundWallet = async(req, res)=>{
-    try{
-        const {amount} = req.body;
-        if(!amount) return res.status(400).json({
-            status:"Failed",
-            message: "Bad input"
-        })
+const fundWallet = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount)
+      return res.status(400).json({
+        status: "Failed",
+        message: "Bad input",
+      });
 
-        if(amount <=0)return res.status(400).json({
-            status:"Failed",
-            message: "You cannot transfer amount of 0"
-        })
+    if (amount <= 0)
+      return res.status(400).json({
+        status: "Failed",
+        message: "You cannot transfer amount of 0",
+      });
 
-        const user = await userModel.findOne({email: req.user.email})
-        if(!user)return res.status(404).json({
-            status: "failed",
-            message: "user does not exist"
-        })
+    const user = await userModel.findOne({ email: req.user.email });
+    if (!user)
+      return res.status(404).json({
+        status: "failed",
+        message: "user does not exist",
+      });
 
-        const wallet = await walletModel.findOne({userId: user._id})
-        if(!wallet)return res.status(404).json({
-            status: "failed",
-            message: "Invalid Account"
-        })
+    const wallet = await walletModel.findOne({ userId: user._id });
+    if (!wallet)
+      return res.status(404).json({
+        status: "failed",
+        message: "Invalid Account",
+      });
 
-        const referenceId = generateReference()
+    const referenceId = generateReference();
 
-        const transaction = new transactionModel({
-            walletId: wallet._id,
-            userId: user._id,
-            type_of_transaction: "DEPOSIT",
-            status: "PENDING",
-            referenceId: referenceId,
-            amount
-        })
-        await transaction.save()
-        const paystackService = await initiateTransaction(user.email, amount, referenceId)
+    const transaction = new transactionModel({
+      walletId: wallet._id,
+      userId: user._id,
+      type_of_transaction: "DEPOSIT",
+      status: "PENDING",
+      referenceId: referenceId,
+      amount,
+    });
+    await transaction.save();
+    const paystackService = await initiateTransaction(
+      user.email,
+      amount,
+      referenceId,
+    );
 
+    res.status(200).json({
+      status: "success",
+      message: "Transaction is initialized",
+      transactionId: transaction._id,
+      reference: paystackService.data.reference,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "failed",
+      message: "Something went wrong",
+    });
+  }
+};
 
-        res.status(200).json({
-            status: "success",
-            message:"Transaction is initialized",
-            transactionId: transaction._id,
-            reference: paystackService.data.reference
+const verificationController = async (req, res) => {
+  const session = await mongoose.startSession();
 
-        })
+  try {
+    const { reference } = req.params;
 
-    }catch(e){
-        console.error(e)
-        res.status(500).json({
-            status: "failed",
-            message: "Something went wrong"
-        })
+    const transaction = await transactionModel.findOne({ referenceId: reference }).session(session);
+    const wallet = await walletModel.findByOne({ userId: req.user._id }).session(session);
+
+    if (!transaction || !wallet) {
+      session.abortTransaction();
+      return res.status(404).json({
+        status: "failed",
+        message: "Cannot find wallet or transaction",
+      });
     }
-}
 
-const verificationController = async(req, res)=> {
-    try{
-        const transaction = await transactionModel.findOne({userId: req.user._id})
-        const wallet = await walletModel.findOne({userId: req.user._id})
-
-        if(!transaction || !wallet) return res.status(404).json({
-            status:"failed",
-            message: "Cannot find wallet or transaction"
-        });
-        
-        const initialWalletBalance = walletModel.balance
-
-        const verification = await verifyReference(transactionModel.referenceId);
-
-        if(verification.data.reference === 'pending'){
-            transaction.status = "PENDING"
-        }
-
-        if(verification.data.reference === "success"){
-            transaction.status = "SUCCESS"
-            wallet.balance = (Number(transactionModel.amount) + initialWalletBalance)
-
-        }
-
-        if(verifcation.data.reference === 'failed'){
-            transaction.status = "FAILED"
-        }
-    }catch(e){
-        console.error(e);
-        res.status(500).json({
-            status:"failed",
-            message: "verification could not be completed"
-        })
+    if (transaction.status === "SUCCESS") {
+      session.abortTransaction();
+      return res.status(404).json({
+        status: "failed",
+        message: "This transaction is already processed",
+      });
     }
-}
 
-module.exports = {fundWallet}
+    const initialWalletBalance = wallet.balance;
+
+    const verification = await verifyReference(transaction.referenceId);
+
+    if (verification.data.status === "success") {
+      wallet.balance = Number(transaction.amount) + initialWalletBalance;
+      transaction.status = "SUCCESS";
+      await transaction.save({session})
+      await wallet.save({session})
+      await session.commitTransaction()
+
+        return res.status(200).json({
+        status: "success",
+        message: `You have been credited with ${transaction.amount}`,
+      });
+    }
+
+    transaction.status = "FAILED"
+    await transaction.save({session});
+    await session.commitTransaction()
+
+    return res.status(400).json({
+        status: "failed",
+        message: "The transaction failed"
+    })
+  } catch (e) {
+    session.abortTransaction();
+    console.error(e);
+    res.status(500).json({
+      status: "failed",
+      message: "verification could not be completed",
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+module.exports = { fundWallet };

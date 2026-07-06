@@ -28,6 +28,7 @@ const projectSchema = new mongoose.Schema(
 
     demo: {
       type: String,
+      default: undefined
     },
 
     featured: {

@@ -12,6 +12,8 @@ dns.setServers([
 const connectDB = require('./utils/db')
 const authRoutes = require('./routes/authRoutes')
 const walletRoutes = require('./routes/walletRoutes')
+const fundwalletRoute = require('./routes/fundWalletRoute')
+const withdrawfundsRoute = require('./routes/withdrawFundRoute')
 
 app.use(express.json());
 
@@ -28,6 +30,12 @@ app.use('/api/v1/auth', authRoutes)
 
 //wallet Route
 app.use('/api/v1/wallet', walletRoutes)
+
+//deposit route
+app.use('/api/v1/wallet/', fundwalletRoute)
+
+//transfer route
+app.use('/api/v1/wallet', withdrawfundsRoute)
 const startServer = async ()=>{
     try{
         await connectDB();

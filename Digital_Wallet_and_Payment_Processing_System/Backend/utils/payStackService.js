@@ -25,7 +25,7 @@ const initiateTransaction = async (email, amount, reference, callback_url) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      `Paystack Initialization Error: ${e.response.data.message || e.message}`,
+      "Paystack Initialization Error: ", e.response.data.message || e.message,
     );
   }
 };
@@ -47,7 +47,7 @@ const getBankCode = async (bankName) => {
     return bank.code;
   } catch (e) {
     throw new Error(
-      `GetBank Code Error: ${e.response?.data?.message || e.message}`,
+      `GetBank Code Error:`, e.response.data.message || e.message,
     );
   }
 };
@@ -71,7 +71,7 @@ const initiateWithdrawal = async (amount, recipient, reference, reason) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      `Withdrawal Error: ${e.response?.data?.message || e.message}`,
+      "Withdrawal Error:", e.response.data.message || e.message,
     );
   }
 };
@@ -83,13 +83,13 @@ const initiateWithdrawal = async (amount, recipient, reference, reason) => {
 const verifyReference = async (reference) => {
   try {
     const response = await axios.get(
-      `https://api.paystack.co/transfer/verify/:${reference}`,
+      `https://api.paystack.co/transfer/verify/${reference}`,
       { headers: getHeaders() },
     );
     return response.data;
   } catch (e) {
     throw new Error(
-      `Verification Error: ${e.response?.data?.message || e.message}`,
+      "Verification Error:", e.response.data.message || e.message,
     );
   }
 };
@@ -99,7 +99,7 @@ const verifyReference = async (reference) => {
  */
 const initiateRecipient = async (name, accountNumber, bankCode) => {
   try {
-    const response = await axios.post(
+    const response = await axios.get(
       "https://api.paystack.co/transferrecipient",
       {
         type: "nuban",
@@ -115,7 +115,7 @@ const initiateRecipient = async (name, accountNumber, bankCode) => {
 
   } catch (e) {
     throw new Error(
-      `Recipient Creation Error: ${e.response.data.message || e.message}`,
+      "Recipient Creation Error:", e.response.data.message || e.message,
     );
   }
 };
@@ -135,7 +135,7 @@ const resolveAccountNumber = async(accountNumber, bankCode)=>{
 
         return response.data.data.account_name
     }catch(e){
-        throw new Error(`Resolving account Number Error: ${e.response.data.message} || e.message`)
+        throw new Error("Resolving account Number Error:",e.response.data.message || e.message)
     }
 }
 module.exports = {

@@ -19,7 +19,7 @@ const withdrawFunds = async (req, res) => {
     //user Wallet
     let { pin, bankAccount, bankName, amount } = req.body;
 
-    if (!walletNumber || !pin || !bankAccount || !bankName || !amount) {
+    if (!pin || !bankAccount || !bankName || !amount) {
       session.abortTransaction();
       return res.status(400).json({
         status: "failed",
@@ -29,7 +29,7 @@ const withdrawFunds = async (req, res) => {
     //Validate wallet Number
     const wallet = await walletModel
       .findOne({ userId: req.user._id })
-      .select("+pin");
+      .select("+pin").session(session);
     if (!wallet) {
       session.abortTransaction();
       return res.status(404).json({
@@ -81,6 +81,7 @@ const withdrawFunds = async (req, res) => {
      */
 
     wallet.balance -= Number(amount);
+    await wallet.save({session})
 
     //Create transfer recipient
     const transaction = new transactionModel({
@@ -100,6 +101,13 @@ const withdrawFunds = async (req, res) => {
      */
 
     const accountName = await resolveAccountNumber(bankAccount, validateBank);
+    if(!accountName){
+        session.abortTransaction();
+        return res.status(404).json({
+            status: "failed",
+            message: "Could not resolved the bank account"
+        })
+    }
 
     //Make Account A  Beneficiary if possible
     const RecipientCode = await initiateRecipient(
@@ -117,6 +125,8 @@ const withdrawFunds = async (req, res) => {
       referenceId,
       "undefined",
     );
+
+
   } catch (e) {
     session.abortTransaction()
     console.error(e);
@@ -129,12 +139,16 @@ const withdrawFunds = async (req, res) => {
   }
 };
 
+
+
+
 const verificationController = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     const { reference } = req.params;
-
+    
+    //validate the transaction model with the reference
     const transaction = await transactionModel
       .findOne({ referenceId: reference })
       .session(session);
@@ -142,6 +156,7 @@ const verificationController = async (req, res) => {
       .findByOne({ userId: req.user._id })
       .session(session);
 
+      //Validate the wallet and transaction
     if (!transaction || !wallet) {
       await session.abortTransaction();
       return res.status(404).json({
@@ -149,6 +164,8 @@ const verificationController = async (req, res) => {
         message: "Cannot find wallet or transaction",
       });
     }
+
+    //If the transaction is already Completed, then abort the transaction to improve the integrity
 
     if (transaction.status === "SUCCESS") {
       await session.abortTransaction();
@@ -158,11 +175,10 @@ const verificationController = async (req, res) => {
       });
     }
 
-    const initialWalletBalance = wallet.balance;
-
+    //Check the integrity of the transaction using reference ID
     const verification = await verifyReference(transaction.referenceId);
 
-    //Check the integrity of the transaction using reference ID
+    //Improving the integrity by ensuring that payment referenceId in paystack is same as the transaction referemce
     const payment = verification.data;
     if (payment.reference !== transaction.referenceId) {
       await session.abortTransaction();
@@ -172,8 +188,7 @@ const verificationController = async (req, res) => {
       });
     }
 
-    // Verify that the amount is the same
-
+    // Verify that the amount is the same (Integrity improvement)
     if (payment.amount !== transaction.amount * 100) {
       await session.abortTransaction();
       return res.status(400).json({
@@ -192,9 +207,7 @@ const verificationController = async (req, res) => {
     }
 
     //perform transaction and update the status of the transaction
-
     if (verification.data.status === "success") {
-      wallet.balance = Number(transaction.amount) + initialWalletBalance;
       transaction.status = "SUCCESS";
       await transaction.save({ session });
       await wallet.save({ session });
@@ -202,13 +215,14 @@ const verificationController = async (req, res) => {
 
       return res.status(200).json({
         status: "success",
-        message: `You have been credited with ${transaction.amount}`,
+        message: `You have been debited with ${transaction.amount}`,
         balance: wallet.balance,
         transaction,
       });
     }
 
     transaction.status = "FAILED";
+    wallet.balance += Number(transaction.amount)
     await transaction.save({ session });
     await session.commitTransaction();
 
@@ -228,4 +242,4 @@ const verificationController = async (req, res) => {
   }
 };
 
-module.exports = { withdrawFunds };
+module.exports = { withdrawFunds, verificationController };

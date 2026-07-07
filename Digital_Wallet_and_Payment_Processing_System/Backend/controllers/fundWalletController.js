@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const sendEmail = require('../utils/mailer')
+const {getDepositEmail} = require('../utils/emailHtmlTemplate')
 
 const {
   initiateTransaction,
@@ -94,6 +96,15 @@ const verificationController = async (req, res) => {
 
     if (transaction.status === "SUCCESS") {
       await session.abortTransaction();
+      // DISPATCH DEPOSIT TEMPLATE EMAIL
+      if (req.user && req.user.email) {
+          sendEmail(
+              req.user.email,
+              "✨ Wallet Credit Notification",
+              `Your account has been credited with ₦${transaction.amount}.`,
+              getDepositEmail(transaction.amount, transaction.referenceId, wallet.balance)
+          )
+      }
       return res.status(404).json({
         status: "failed",
         message: "This transaction is already processed",

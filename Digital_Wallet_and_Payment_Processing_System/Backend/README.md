@@ -162,7 +162,7 @@ This project demonstrates practical backend engineering concepts including:
 ## 🚀 Future Improvements
 
 - Refresh Token Authentication
-- Email Verification
+- Email Verification (Implemented)
 - KYC Verification
 - Two-Factor Authentication (2FA)
 - Beneficiary Management

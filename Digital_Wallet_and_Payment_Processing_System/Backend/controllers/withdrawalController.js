@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const generateReference = require("../utils/generateReference");
+const sendEmail = require("../utils/mailer");
 const {
   getBankCode,
   verifyReference,
@@ -29,7 +30,8 @@ const withdrawFunds = async (req, res) => {
     //Validate wallet Number
     const wallet = await walletModel
       .findOne({ userId: req.user._id })
-      .select("+pin").session(session);
+      .select("+pin")
+      .session(session);
     if (!wallet) {
       session.abortTransaction();
       return res.status(404).json({
@@ -81,7 +83,7 @@ const withdrawFunds = async (req, res) => {
      */
 
     wallet.balance -= Number(amount);
-    await wallet.save({session})
+    await wallet.save({ session });
 
     //Create transfer recipient
     const transaction = new transactionModel({
@@ -101,12 +103,12 @@ const withdrawFunds = async (req, res) => {
      */
 
     const accountName = await resolveAccountNumber(bankAccount, validateBank);
-    if(!accountName){
-        session.abortTransaction();
-        return res.status(404).json({
-            status: "failed",
-            message: "Could not resolved the bank account"
-        })
+    if (!accountName) {
+      session.abortTransaction();
+      return res.status(404).json({
+        status: "failed",
+        message: "Could not resolved the bank account",
+      });
     }
 
     //Make Account A  Beneficiary if possible
@@ -126,28 +128,36 @@ const withdrawFunds = async (req, res) => {
       "undefined",
     );
 
-
+    if (req.user && req.user.email) {
+      sendEmail(
+        req.user.email,
+        "Withdrawal has been initiated",
+        `Hello, you have initiated a withdrawal of ₦${amount} to ${bankName} (${bankAccount}). Your reference is ${referenceId}. We will notify you once processing is complete.`,
+      );
+    }
+    await session.commitTransaction();
+    res.status(200).json({
+      status: "success",
+      message: "withdrawal is initiated successfully",
+    });
   } catch (e) {
-    session.abortTransaction()
+    session.abortTransaction();
     console.error(e);
     res.status(500).json({
       status: "failed",
       message: "Something went wrong",
     });
-  }finally{
-    session.endSession()
+  } finally {
+    session.endSession();
   }
 };
-
-
-
 
 const verificationController = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     const { reference } = req.params;
-    
+
     //validate the transaction model with the reference
     const transaction = await transactionModel
       .findOne({ referenceId: reference })
@@ -156,7 +166,7 @@ const verificationController = async (req, res) => {
       .findByOne({ userId: req.user._id })
       .session(session);
 
-      //Validate the wallet and transaction
+    //Validate the wallet and transaction
     if (!transaction || !wallet) {
       await session.abortTransaction();
       return res.status(404).json({
@@ -213,6 +223,14 @@ const verificationController = async (req, res) => {
       await wallet.save({ session });
       await session.commitTransaction();
 
+      //  TRIGGER EMAIL NOTIFICATION: Bank Transfer Success
+      if (req.user && req.user.email) {
+        sendEmail(
+          req.user.email,
+          "Withdrawal Successful",
+          `Great news! Your withdrawal of ₦${transaction.amount} has been successfully dispatched to your commercial bank account. Ref: ${transaction.referenceId}.`,
+        );
+      }
       return res.status(200).json({
         status: "success",
         message: `You have been debited with ${transaction.amount}`,
@@ -222,9 +240,17 @@ const verificationController = async (req, res) => {
     }
 
     transaction.status = "FAILED";
-    wallet.balance += Number(transaction.amount)
+    wallet.balance += Number(transaction.amount);
     await transaction.save({ session });
     await session.commitTransaction();
+
+    if (req.user && req.user.email) {
+      sendEmail(
+        req.user.email,
+        "Withdrawal Failed - Wallet Refunded",
+        `We wanted to let you know that your withdrawal request of ₦${transaction.amount} failed at the bank processing stage. The full amount has been reversed to your app wallet balance.`,
+      );
+    }
 
     return res.status(400).json({
       status: "failed",

@@ -1,18 +1,24 @@
-//Models 
+//Models
 
 const userModel = require("../Models/Users");
-const walletModel = require('../Models/Wallet')
+const walletModel = require("../Models/Wallet");
+const { getWelcomeEmail, getPasswordChangeEmail } = require("../utils/emailHtmlTemplate");
+const sendEmail = require("../utils/mailer");
 //Encryption
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
-const JWT_REFRESH_TOKEN = process.env.JWT_REFRESH_TOKEN
+const JWT_REFRESH_TOKEN = process.env.JWT_REFRESH_TOKEN;
+
+/**
+ * USER REGISTRATION CONTROLLER
+ */
 
 const Register = async (req, res) => {
   try {
     const { name, password, email, phone } = req.body;
 
-    if (!name || !password || !email ||!phone)
+    if (!name || !password || !email || !phone)
       return res.status(400).json({
         status: "failed",
         message: "Invalid Inputs",
@@ -30,26 +36,42 @@ const Register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = new userModel({ name, email, password: hashedPassword, phone });
+    const user = new userModel({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+    });
     await user.save();
 
     //Generate Random Account Number that is unique
-    let walletNumber = Math.floor(Math.random() * 9000000000) + 1000000000
-    let checkWalletNumber = await walletModel.findOne({walletNumber: walletNumber})
+    let walletNumber = Math.floor(Math.random() * 9000000000) + 1000000000;
+    let checkWalletNumber = await walletModel.findOne({
+      walletNumber: walletNumber,
+    });
 
-    while(checkWalletNumber){
-        walletNumber = Math.floor(Math.random() * 9000000000) + 1000000000
-        checkWalletNumber = await walletModel.findOne({walletNumber: walletNumber})
+    while (checkWalletNumber) {
+      walletNumber = Math.floor(Math.random() * 9000000000) + 1000000000;
+      checkWalletNumber = await walletModel.findOne({
+        walletNumber: walletNumber,
+      });
     }
 
-    const createNewWallet = new walletModel({userId: user._id, walletNumber})
-    await createNewWallet.save()
+    const createNewWallet = new walletModel({ userId: user._id, walletNumber });
+    await createNewWallet.save();
+
+    sendEmail(
+      newUser.email,
+      "👋 Welcome to Wallet App!",
+      `Welcome to Wallet App, ${user.name}! and your wallet number is ${createNewWallet.walletNumber}`,
+      getWelcomeEmail(user.name),
+    );
 
     res.status(201).json({
       status: "successful",
       message: "user Created successfully",
       user,
-      walletNumber
+      walletNumber,
     });
   } catch (e) {
     console.error(e);
@@ -59,6 +81,11 @@ const Register = async (req, res) => {
     });
   }
 };
+
+/**
+ * 
+ * LOGIN CONTROLLER
+ */
 
 const Login = async (req, res) => {
   try {
@@ -87,23 +114,29 @@ const Login = async (req, res) => {
 
     // Generate Token
 
-    const token =  jwt.sign(
+    const token = jwt.sign(
       { id: user._id, email, role: user.role, name: user.name },
       JWT_SECRET_KEY,
       { expiresIn: "60m" },
     );
 
-    const refreshToken = jwt.sign({
-        email:user.email, role:user.role, name:user.name
-    }, JWT_REFRESH_TOKEN, {expiresIn: '7d'})
+    const refreshToken = jwt.sign(
+      {
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      },
+      JWT_REFRESH_TOKEN,
+      { expiresIn: "7d" },
+    );
 
     console.log(refreshToken);
 
     res.status(200).json({
-        status: "successful",
-        message: "you have been logged in successfully",
-        token
-    })
+      status: "successful",
+      message: "you have been logged in successfully",
+      token,
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({
@@ -113,56 +146,72 @@ const Login = async (req, res) => {
   }
 };
 
-const ChangePassword = async(req, res)=>{
-  try{
-    const {oldPassword, newPassword, confirmPassword} = req.body;
+/**
+ * CHANGE PASSWORD
+ */
+
+const ChangePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword, confirmPassword } = req.body;
 
     const user = await userModel.findById(req.user._id);
-    
-    if(!userser) return res.status(404).json({
-      status: "failed",
-      message: "invalid user"
-    })
 
-    if(!oldPassword|| !newPassword || !confirmPassword) return res.status(400).json({
-      status: "failed",
-      message: "invalid input"
-    })
-    
+    if (!userser)
+      return res.status(404).json({
+        status: "failed",
+        message: "invalid user",
+      });
+
+    if (!oldPassword || !newPassword || !confirmPassword)
+      return res.status(400).json({
+        status: "failed",
+        message: "invalid input",
+      });
+
     const checkOldPassword = await bcrypt.compare(oldPassword, user.password);
 
-    if(!checkOldPassword)return res.status(403).json({
-      status: "failed",
-      message: "Old password is not correct"
-    })
-    
-    //Check if Password matches 
-    if(newPassword !== confirmPassword) return res.status(400).json({
-      status: "failed",
-      message: "Passwords mismatch"
-    })
-    
-    if(oldPassword === newPassword) return res.status(400).json({
-      status: "failed",
-      message: "Old password is same as new passwor"
-    })
-    
+    if (!checkOldPassword)
+      return res.status(403).json({
+        status: "failed",
+        message: "Old password is not correct",
+      });
+
+    //Check if Password matches
+    if (newPassword !== confirmPassword)
+      return res.status(400).json({
+        status: "failed",
+        message: "Passwords mismatch",
+      });
+
+    if (oldPassword === newPassword)
+      return res.status(400).json({
+        status: "failed",
+        message: "Old password is same as new passwor",
+      });
+
     //hash the password before saving
-    const salt = await bcrypt.genSalt(10)
-    const hashedPassword = await bcrypt.hash(newPassword, salt)
-    
-    user.password = hashedPassword
-    await user.save()
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    sendEmail(
+      req.user.email,
+      "🔒 Security Update:Account Password Changed",
+      "Your transaction Password has been successfully modified.",
+      getPasswordChangeEmail(),
+    );
     res.status(200).json({
       status: "success",
-      message: "Password changed successfully", 
-    })
-  }catch(e){
+      message: "Password changed successfully",
+    });
+  } catch (e) {
     console.error(e);
     res.status(500).json({
       status: "Failed",
-      message: "Something went wrong"
-    })
+      message: "Something went wrong",
+    });
   }
-}
-module.exports = { Register, Login , ChangePassword};
+};
+module.exports = { Register, Login, ChangePassword };

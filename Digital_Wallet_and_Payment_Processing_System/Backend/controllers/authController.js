@@ -28,7 +28,7 @@ const Register = async (req, res) => {
     if (checkUser)
       return res.status(400).json({
         status: "failed",
-        message: "The email is already in use",
+        message: "The email is already in use, Login Instead",
       });
 
     // Hash Password
@@ -61,7 +61,7 @@ const Register = async (req, res) => {
     await createNewWallet.save();
 
     sendEmail(
-      newUser.email,
+      user.email,
       "👋 Welcome to Wallet App!",
       `Welcome to Wallet App, ${user.name}! and your wallet number is ${createNewWallet.walletNumber}`,
       getWelcomeEmail(user.name),

@@ -25,4 +25,4 @@ const TransactionSchema = new mongoose.Schema({
     }
 },{timestamps: true})
 
-module.exports = mongoos.model('transaction', TransactionSchema)
+module.exports = mongoose.model('transaction', TransactionSchema)

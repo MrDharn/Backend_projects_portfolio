@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
     KYC_STATUS:{
         type: String,
         enum: ['PENDING','VERIFIED','REJECTED'],
-        default: 'pending'
+        default: 'PENDING'
     },
     token: {
         type: String

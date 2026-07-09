@@ -1,6 +1,6 @@
 const userModel = require('../Models/Users')
 const walletModel = require('../Models/Wallet')
-
+const transactionModel = require('../Models/Transaction')
 const getProfileDetails = async(req, res)=>{
     try{
         const profile = await userModel.findOne({email: req.user.email})
@@ -15,16 +15,23 @@ const getProfileDetails = async(req, res)=>{
             message: "wallet is not attached to this user"
         })
 
+        const transactions = await transactionModel.findOne({userId: profile._id});
+        if(!transactions)return res.status(404).json({
+            status: "failed",
+            message: "user is not Verified"
+        })
+
+
         const data = {
             name: profile.name,
             email: profile.email,
             phoneNumber: profile.phoneNumber,
             KYC_STATUS: profile.KYC_STATUS,
             walletNumber: wallet.walletNumber,
-            balance: wallet.balance
-
+            balance: wallet.balance,
         }
 
+        console.log(data)
         res.status(200).json({
             status: "success",
             message: "fetched successfully",

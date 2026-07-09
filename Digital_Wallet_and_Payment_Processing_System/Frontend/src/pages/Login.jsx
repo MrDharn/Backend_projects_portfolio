@@ -24,6 +24,8 @@ const Login = () => {
     try {
       const res = await loginUser(form);
       login(res.data.token);
+      
+      alert(res.data.message)
       navigate("/dashboard");
     } catch (e) {
       alert(e.response?.data?.message);

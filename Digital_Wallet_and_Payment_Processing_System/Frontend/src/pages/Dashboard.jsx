@@ -1,7 +1,10 @@
-import React from "react";
+import {React, useContext} from "react";
 import "./css/dashboard.css";
 import DashboardLayout from "../layout/DashboardLayout";
+import {AuthContext} from "../context/AuthContext"
+
 const Dashboard = () => {
+  const {user} = useContext(AuthContext)
   return (
     <DashboardLayout>
     
@@ -11,7 +14,7 @@ const Dashboard = () => {
 
           <h3>Wallet Balance</h3>
 
-          <h2>₦0.00</h2>
+          <h2>₦</h2>
 
         </div>
 
@@ -19,7 +22,7 @@ const Dashboard = () => {
 
           <h3>Wallet Number</h3>
 
-          <h2>----------</h2>
+          <h2>wawlle</h2>
 
         </div>
 
@@ -33,9 +36,9 @@ const Dashboard = () => {
 
         <div className="card">
 
-          <h3>Status</h3>
+          <h3>KYC Status</h3>
 
-          <h2>Active</h2>
+          <h2></h2>
 
         </div>
       </div>

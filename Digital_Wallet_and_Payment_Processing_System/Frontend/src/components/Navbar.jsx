@@ -1,7 +1,9 @@
-import React from "react";
+import {React, useContext} from "react";
 import "./css/navbar.css";
+import {AuthContext} from "../context/AuthContext"
 
 const Navbar = () => {
+  const {user} = useContext(AuthContext)
   return (
     <div className="navbar">
       <div>
@@ -9,12 +11,14 @@ const Navbar = () => {
       </div>
 
       <div className="user-box">
-        <div className="avatar">D</div>
+        <div className="avatar">
+          {/* {user.name.charAt(0)} */}
+        </div>
 
         <div>
-          <h4>Welcome Back</h4>
+          {/* <h4>{user.name}</h4> */}
 
-          <p>Wallet User</p>
+          {/* <p>{user.email}</p> */}
         </div>
       </div>
     </div>

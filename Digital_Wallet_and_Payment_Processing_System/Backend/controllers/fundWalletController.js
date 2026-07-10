@@ -118,7 +118,7 @@ const verificationController = async (req, res) => {
     const initialWalletBalance = wallet.balance;
 
     const verification = await verifyReferenceForDeposit(transaction.referenceId);
-
+    console.log(verification)
     //Check the integrity of the transaction using reference ID
     const payment = verification.data;
     if (payment.reference !== transaction.referenceId) {

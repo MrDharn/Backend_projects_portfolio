@@ -79,6 +79,8 @@ const withdrawFunds = async (req, res) => {
     //validate bank Account
     const validateBank = await getBankCode(bankName);
 
+    console.log(validateBank)
+
     if (!validateBank) {
       session.abortTransaction();
       return res.status(404).json({
@@ -113,6 +115,7 @@ const withdrawFunds = async (req, res) => {
      */
 
     const accountName = await resolveAccountNumber(bankAccount, validateBank);
+    console.log(accountName)
     if (!accountName) {
       session.abortTransaction();
       return res.status(404).json({

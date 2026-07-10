@@ -38,12 +38,14 @@ const getBankCode = async (bankName) => {
     const response = await axios.get("https://api.paystack.co/bank", {
       headers: getHeaders(),
     });
+    // console.log(response.data.data)
     const banks = response.data.data;
     const bank = banks.find(
-      (b) => b.name.toLowerCase() === bankName.toLowerCase(),
+      (b) => b.name.toLowerCase().split(" ")[0] === bankName.toLowerCase().split(" ")[0],
     );
 
     if (!bank) throw new Error("Bank Name not found");
+    // console.log(bank, bank.code)
     return bank.code;
   } catch (e) {
     throw new Error(
@@ -83,7 +85,7 @@ const initiateWithdrawal = async (amount, recipient, reference, reason) => {
 const verifyReferenceForDeposit = async (reference) => {
   try {
     const response = await axios.get(
-      `GET https://api.paystack.co/transaction/verify/${reference}`,
+      `https://api.paystack.co/transaction/verify/${reference}`,
       { headers: getHeaders() },
     );
     return response.data;
@@ -145,7 +147,7 @@ const resolveAccountNumber = async(accountNumber, bankCode)=>{
         }, {
             headers: getHeaders()
         })
-
+        console.log(response)
         return response.data.data.account_name
     }catch(e){
         throw new Error("Resolving account Number Error:",e.response.data.message || e.message)

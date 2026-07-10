@@ -25,7 +25,7 @@ const initiateTransaction = async (email, amount, reference, callback_url) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Paystack Initialization Error: ", e.response.data.message || e.message,
+      "Paystack Initialization Error: ", e.response?.data?.message || e.message,
     );
   }
 };
@@ -47,7 +47,7 @@ const getBankCode = async (bankName) => {
     return bank.code;
   } catch (e) {
     throw new Error(
-      `GetBank Code Error:`, e.response.data.message || e.message,
+      `GetBank Code Error:`, e.response?.data?.message || e.message,
     );
   }
 };
@@ -71,7 +71,7 @@ const initiateWithdrawal = async (amount, recipient, reference, reason) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Withdrawal Error:", e.response.data.message || e.message,
+      "Withdrawal Error:", e.response?.data?.message || e.message,
     );
   }
 };
@@ -80,7 +80,20 @@ const initiateWithdrawal = async (amount, recipient, reference, reason) => {
  * VERIFY TRANSFER REFERENCE
  * Note: For transfers, Paystack uses /transfer/verify/:reference
  */
-const verifyReference = async (reference) => {
+const verifyReferenceForDeposit = async (reference) => {
+  try {
+    const response = await axios.get(
+      `GET https://api.paystack.co/transaction/verify/${reference}`,
+      { headers: getHeaders() },
+    );
+    return response.data;
+  } catch (e) {
+    throw new Error(
+      "Verification Error:", e.response?.data?.message || e.message,
+    );
+  }
+};
+const verifyReferenceForTransfer = async (reference) => {
   try {
     const response = await axios.get(
       `https://api.paystack.co/transfer/verify/${reference}`,
@@ -89,7 +102,7 @@ const verifyReference = async (reference) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Verification Error:", e.response.data.message || e.message,
+      "Verification Error:", e.response?.data?.message || e.message,
     );
   }
 };
@@ -99,7 +112,7 @@ const verifyReference = async (reference) => {
  */
 const initiateRecipient = async (name, accountNumber, bankCode) => {
   try {
-    const response = await axios.get(
+    const response = await axios.post(
       "https://api.paystack.co/transferrecipient",
       {
         type: "nuban",
@@ -115,7 +128,7 @@ const initiateRecipient = async (name, accountNumber, bankCode) => {
 
   } catch (e) {
     throw new Error(
-      "Recipient Creation Error:", e.response.data.message || e.message,
+      "Recipient Creation Error:", e.response?.data?.message || e.message,
     );
   }
 };
@@ -127,7 +140,7 @@ const initiateRecipient = async (name, accountNumber, bankCode) => {
 
 const resolveAccountNumber = async(accountNumber, bankCode)=>{
     try{
-        const response = await axios.post(`https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`, {
+        const response = await axios.get(`https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`, {
 
         }, {
             headers: getHeaders()
@@ -140,7 +153,8 @@ const resolveAccountNumber = async(accountNumber, bankCode)=>{
 }
 module.exports = {
   initiateTransaction,
-  verifyReference,
+  verifyReferenceForDeposit,
+  verifyReferenceForTransfer,
   initiateWithdrawal,
   getBankCode,
   initiateRecipient,

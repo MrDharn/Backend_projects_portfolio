@@ -9,10 +9,14 @@ const TransactionSchema = new mongoose.Schema({
         ref: 'users'
     },
     type_of_transaction: {
-        enum: ['DEPOSIT','WITHRAWAL','MERCHANT_PAYMENT','DEBIT', 'CREDIT']
+        type: String,
+        enum: ['DEPOSIT','WITHRAWAL','MERCHANT_PAYMENT','DEBIT', 'CREDIT'],
+        default: ""
     },
     status: {
-        enum: ['PENDING','SUCCESS','FAILED']
+        type: String,
+        enum: ['PENDING','SUCCESS','FAILED'],
+        default: "PENDING"
     },
     referenceId:{
         type: String

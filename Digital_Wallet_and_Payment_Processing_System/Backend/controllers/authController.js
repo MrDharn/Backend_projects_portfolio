@@ -70,7 +70,9 @@ const Register = async (req, res) => {
     res.status(201).json({
       status: "successful",
       message: "user Created successfully",
-      user,
+      name,
+      email,
+      phone,
       walletNumber,
     });
   } catch (e) {
@@ -96,7 +98,7 @@ const Login = async (req, res) => {
         message: "Bad requests",
       });
 
-    const user = await userModel.findOne({ email: email });
+    const user = await userModel.findOne({ email: email }).select("+password");
     if (!user)
       return res.status(400).json({
         status: "failed",
@@ -154,19 +156,21 @@ const ChangePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword, confirmPassword } = req.body;
 
-    const user = await userModel.findById(req.user._id);
-
-    if (!userser)
-      return res.status(404).json({
-        status: "failed",
-        message: "invalid user",
-      });
-
     if (!oldPassword || !newPassword || !confirmPassword)
       return res.status(400).json({
         status: "failed",
         message: "invalid input",
       });
+
+    const user = await userModel.findById(req.user.id).select("+password");
+    
+    if (!user)
+      return res.status(404).json({
+        status: "failed",
+        message: "invalid user",
+      });
+
+      console.log(user.password)
 
     const checkOldPassword = await bcrypt.compare(oldPassword, user.password);
 
@@ -214,4 +218,107 @@ const ChangePassword = async (req, res) => {
     });
   }
 };
-module.exports = { Register, Login, ChangePassword };
+
+const SetPin = async(req, res)=>{
+  try{
+    const {pin} = req.body;
+    if(!pin || pin.length< 4 || pin.length >4)return res.status(400).json({
+      status:"failed",
+      message: "invalid input(pin length is not 4 )"
+    })
+
+    const wallet = await walletModel.findOne({userId: req.user.id});
+    if(!wallet)return res.status(404).json({
+      status:"failed",
+      message: "Wallet cannot be found"
+    })
+
+    if(wallet.isPinSet) return res.status(400).json({
+      status:"failed",
+      message:"Pin is already set, you can change pin instead"
+    })
+
+    const hashPin = await bcrypt.hash(pin, 10);
+    if(!hashPin) return res.status(400).json({
+      status: "failed",
+      message: "Please try again later"
+    })
+
+    wallet.isPinSet = true
+    wallet.pin = hashPin
+
+    await wallet.save();
+
+    res.status(201).json({
+      status: "success",
+      message:"pin i set successfully",
+    })
+
+  }catch(e){
+    console.error(e)
+    res.status(500).json({
+      status:"failed",
+      message:"Something went wrong"
+    })
+  }
+}
+
+const ChangePin = async(req,res)=>{
+  try{
+    const {oldPin, newPin, confirmPin} = req.body
+
+    if(!oldPin ||!newPin||!confirmPin) return res.status(400).json({
+      status:"failed",
+      message:"Invalid inputs"
+    })
+
+    const wallet = await walletModel.findOne({userId: req.user.id}).select("+pin");
+    if(!wallet)return res.status(404).json({
+      status: "Failed",
+      message: "user has no wallet"
+    })
+
+    //check if pin is not set at all
+    if(wallet.isPinSet === false)return res.status(400).json({
+      status:"failed",
+      message: "you have not set up your pin"
+    })
+
+    //check oldPin validity
+    const oldPinValidity = await bcrypt.compare(oldPin, wallet.pin);
+    if(!oldPinValidity)return res.status(400).json({
+      status: "failed",
+      message: "Old Pin is incorrect"
+    })
+
+    //check if newPin is same as confirmPin
+    if(newPin !== confirmPin)return res.status(400).json({
+      status: "failed",
+      message: "Pin mismatch"
+    })
+
+    //hash pin
+    const hashNewPin = await bcrypt.hash(newPin, 10);
+
+    if(!hashNewPin)return res.status(403).json({
+      status: "failed",
+      message: "try again later"
+    })
+
+    wallet.pin = hashNewPin
+    await wallet.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Pin is Changed successfully!!!"
+    })
+
+  }catch(e){
+    console.error(e);
+    res.status(500).json({
+      status:"failed",
+      message:"Something went wrong"
+    })
+  }
+}
+module.exports = { Register, Login, ChangePassword, SetPin, ChangePin };

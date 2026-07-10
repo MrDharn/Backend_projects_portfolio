@@ -3,7 +3,7 @@ const generateReference = require("../utils/generateReference");
 const sendEmail = require("../utils/mailer");
 const {
   getBankCode,
-  verifyReference,
+  verifyReferenceForTransfer,
   initiateWithdrawal,
   initiateRecipient,
   resolveAccountNumber,
@@ -29,7 +29,7 @@ const withdrawFunds = async (req, res) => {
     }
     //Validate wallet Number
     const wallet = await walletModel
-      .findOne({ userId: req.user._id })
+      .findOne({ userId: req.user.id })
       .select("+pin")
       .session(session);
     if (!wallet) {
@@ -42,6 +42,16 @@ const withdrawFunds = async (req, res) => {
     //Request Withrawal
 
     const referenceId = generateReference();
+
+    //Check if pin is not set
+
+    if(!wallet.isPinSet){
+      session.abortTransaction()
+      return res.status(400).json({
+        status: "failed",
+        message: "you have not set your pin "
+      })
+    }
 
     //Validate Pin
     if (typeof pin === "number") {
@@ -125,7 +135,7 @@ const withdrawFunds = async (req, res) => {
       Number(amount),
       RecipientCode,
       referenceId,
-      "undefined",
+      "balance",
     );
 
     if (req.user && req.user.email) {
@@ -186,7 +196,7 @@ const verificationController = async (req, res) => {
     }
 
     //Check the integrity of the transaction using reference ID
-    const verification = await verifyReference(transaction.referenceId);
+    const verification = await verifyReferenceForTransfer(transaction.referenceId);
 
     //Improving the integrity by ensuring that payment referenceId in paystack is same as the transaction referemce
     const payment = verification.data;

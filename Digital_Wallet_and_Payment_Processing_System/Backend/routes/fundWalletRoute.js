@@ -5,6 +5,6 @@ const { fundWallet , verificationController} = require('../controllers/fundWalle
 const authenticationMiddleware = require('../middlewares/authMiddleware')
 
 fundwalletRoute.route('/deposit').post(authenticationMiddleware, fundWallet)
-fundwalletRoute.route('/deposit/verify:reference').get(authenticationMiddleware, verificationController)
+fundwalletRoute.route('/deposit/verify').get(authenticationMiddleware, verificationController)
 
 module.exports = fundwalletRoute

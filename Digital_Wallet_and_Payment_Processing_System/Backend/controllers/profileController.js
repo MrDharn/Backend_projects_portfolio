@@ -15,20 +15,22 @@ const getProfileDetails = async(req, res)=>{
             message: "wallet is not attached to this user"
         })
 
+        let transactionLength
         const transactions = await transactionModel.findOne({userId: profile._id});
-        if(!transactions)return res.status(404).json({
-            status: "failed",
-            message: "user is not Verified"
-        })
-
+        if(!transactions){
+            transactionLength = 0
+        } else{
+            transactionLength = transactions.length
+        }
 
         const data = {
             name: profile.name,
             email: profile.email,
-            phoneNumber: profile.phoneNumber,
+            phoneNumber: profile.phone,
             KYC_STATUS: profile.KYC_STATUS,
             walletNumber: wallet.walletNumber,
             balance: wallet.balance,
+            transactions: transactionLength
         }
 
         console.log(data)

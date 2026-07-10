@@ -45,7 +45,7 @@ const getWelcomeEmail = (fullName) =>
   );
 
 // 3. Security PIN Reset Template
-const getPasswordChange = () =>
+const getPasswordChangeEmail = () =>
   emailWrapper(
     "🔒 Security Update: Transaction PIN Changed",
     `<p>Hello,</p>
@@ -58,5 +58,5 @@ const getPasswordChange = () =>
 module.exports = {
   getDepositEmail,
   getWelcomeEmail,
-  getPasswordChange,
+  getPasswordChangeEmail,
 };

@@ -4,7 +4,7 @@ const {getDepositEmail} = require('../utils/emailHtmlTemplate')
 
 const {
   initiateTransaction,
-  verifyReference,
+  verifyReferenceForDeposit,
 } = require("../utils/payStackService");
 const generateReference = require("../utils/generateReference");
 const userModel = require("../Models/Users");
@@ -57,11 +57,14 @@ const fundWallet = async (req, res) => {
       referenceId,
     );
 
+    console.log(paystackService)
+
     res.status(200).json({
       status: "success",
       message: "Transaction is initialized",
-      transactionId: transaction._id,
-      reference: paystackService.data.reference,
+      transaction,
+      paystackService: paystackService.data.reference,
+      authorizationUrl: paystackService.data.authorization_url
     });
   } catch (e) {
     console.error(e);
@@ -77,34 +80,35 @@ const verificationController = async (req, res) => {
  session.startTransaction();
 
   try {
-    const { reference } = req.params;
+    const { reference } = req. query;
+    console.log(req.user)
 
     const transaction = await transactionModel
       .findOne({ referenceId: reference })
       .session(session);
-    const wallet = await walletModel
-      .findByOne({ userId: req.user._id })
-      .session(session);
+      
+      if (!transaction) {
+        await session.abortTransaction();
+        return res.status(404).json({
+          status: "failed",
+          message: "Cannot find such transaction",
+        });
+      }
+    const wallet = await walletModel.findOne({userId: req.user.id}).session(session);
 
-    if (!transaction || !wallet) {
+    if (!wallet) {
       await session.abortTransaction();
       return res.status(404).json({
         status: "failed",
-        message: "Cannot find wallet or transaction",
+        message: "Cannot find wallet",
       });
     }
 
+
+
     if (transaction.status === "SUCCESS") {
       await session.abortTransaction();
-      // DISPATCH DEPOSIT TEMPLATE EMAIL
-      if (req.user && req.user.email) {
-          sendEmail(
-              req.user.email,
-              "✨ Wallet Credit Notification",
-              `Your account has been credited with ₦${transaction.amount}.`,
-              getDepositEmail(transaction.amount, transaction.referenceId, wallet.balance)
-          )
-      }
+     
       return res.status(404).json({
         status: "failed",
         message: "This transaction is already processed",
@@ -113,7 +117,7 @@ const verificationController = async (req, res) => {
 
     const initialWalletBalance = wallet.balance;
 
-    const verification = await verifyReference(transaction.referenceId);
+    const verification = await verifyReferenceForDeposit(transaction.referenceId);
 
     //Check the integrity of the transaction using reference ID
     const payment = verification.data;
@@ -153,6 +157,16 @@ const verificationController = async (req, res) => {
       await transaction.save({ session });
       await wallet.save({ session });
       await session.commitTransaction();
+
+       // DISPATCH DEPOSIT TEMPLATE EMAIL
+      if (req.user && req.user.email) {
+          sendEmail(
+              req.user.email,
+              "✨ Wallet Credit Notification",
+              `Your account has been credited with ₦${transaction.amount}.`,
+              getDepositEmail(transaction.amount, transaction.referenceId, wallet.balance)
+          )
+      }
 
       return res.status(200).json({
         status: "success",

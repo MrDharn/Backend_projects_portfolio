@@ -16,6 +16,7 @@ const walletRoutes = require('./routes/walletRoutes')
 const fundwalletRoute = require('./routes/fundWalletRoute')
 const withdrawfundsRoute = require('./routes/withdrawFundRoute')
 const profileRoute = require('./routes/profileRoute')
+const transferRoute = require('./routes/walletTransferRoute')
 
 app.use(cors())
 app.use(express.json());
@@ -39,6 +40,9 @@ app.use('/api/v1/wallet/', fundwalletRoute)
 
 //transfer route
 app.use('/api/v1/wallet', withdrawfundsRoute)
+
+//transfer to another wallet route
+app.use('/api/v1/wallet', transferRoute)
 
 //profile route
 app.use('/api/v1/wallet', profileRoute)

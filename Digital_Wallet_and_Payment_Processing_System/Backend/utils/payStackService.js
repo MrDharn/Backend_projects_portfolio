@@ -25,7 +25,8 @@ const initiateTransaction = async (email, amount, reference, callback_url) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Paystack Initialization Error: ", e.response?.data?.message || e.message,
+      "Paystack Initialization Error: ",
+      e.response?.data?.message || e.message,
     );
   }
 };
@@ -41,7 +42,9 @@ const getBankCode = async (bankName) => {
     // console.log(response.data.data)
     const banks = response.data.data;
     const bank = banks.find(
-      (b) => b.name.toLowerCase().split(" ")[0] === bankName.toLowerCase().split(" ")[0],
+      (b) =>
+        b.name.toLowerCase().split(" ")[0] ===
+        bankName.toLowerCase().split(" ")[0],
     );
 
     if (!bank) throw new Error("Bank Name not found");
@@ -49,7 +52,8 @@ const getBankCode = async (bankName) => {
     return bank.code;
   } catch (e) {
     throw new Error(
-      `GetBank Code Error:`, e.response?.data?.message || e.message,
+      `GetBank Code Error:`,
+      e.response?.data?.message || e.message,
     );
   }
 };
@@ -73,7 +77,8 @@ const initiateWithdrawal = async (amount, recipient, reference, reason) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Withdrawal Error:", e.response?.data?.message || e.message,
+      `Withdrawal Error:
+      ${e.response?.data?.message} || ${e.message}`,
     );
   }
 };
@@ -91,7 +96,8 @@ const verifyReferenceForDeposit = async (reference) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Verification Error:", e.response?.data?.message || e.message,
+      "Verification Error:",
+      e.response?.data?.message || e.message,
     );
   }
 };
@@ -104,7 +110,8 @@ const verifyReferenceForTransfer = async (reference) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Verification Error:", e.response?.data?.message || e.message,
+      "Verification Error:",
+      e.response?.data?.message || e.message,
     );
   }
 };
@@ -119,40 +126,43 @@ const initiateRecipient = async (name, accountNumber, bankCode) => {
       {
         type: "nuban",
         name: name,
-        account_number: accountNumber, 
-        bank_code: bankCode, 
+        account_number: accountNumber,
+        bank_code: bankCode,
         currency: "NGN",
       },
       { headers: getHeaders() },
     );
 
-    return response.data.data.recipient_code; 
-
+    return response.data.data.recipient_code;
   } catch (e) {
     throw new Error(
-      "Recipient Creation Error:", e.response?.data?.message || e.message,
+      "Recipient Creation Error:",
+      e.response?.data?.message || e.message,
     );
   }
 };
-
 
 /**
  * RESOLVE ACCOUNT NUMBER
  */
 
-const resolveAccountNumber = async(accountNumber, bankCode)=>{
-    try{
-        const response = await axios.get(`https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`, {
-
-        }, {
-            headers: getHeaders()
-        })
-        console.log(response)
-        return response.data.data.account_name
-    }catch(e){
-        throw new Error("Resolving account Number Error:",e.response.data.message || e.message)
-    }
-}
+const resolveAccountNumber = async (accountNumber, bankCode) => {
+  try {
+    const response = await axios.get(
+      `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
+      {
+        headers: getHeaders(),
+      },
+    );
+    // console.log(response.data.data.account_name);
+    return response.data.data.account_name;
+  } catch (e) {
+    throw new Error(
+      `Resolving account Number Error:
+      ${e.response?.data?.message} || ${e.message},`
+    );
+  }
+};
 module.exports = {
   initiateTransaction,
   verifyReferenceForDeposit,
@@ -160,5 +170,5 @@ module.exports = {
   initiateWithdrawal,
   getBankCode,
   initiateRecipient,
-  resolveAccountNumber
+  resolveAccountNumber,
 };

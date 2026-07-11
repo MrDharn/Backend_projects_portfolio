@@ -115,7 +115,8 @@ const withdrawFunds = async (req, res) => {
      */
 
     const accountName = await resolveAccountNumber(bankAccount, validateBank);
-    console.log(accountName)
+    // console.log(accountName)
+
     if (!accountName) {
       session.abortTransaction();
       return res.status(404).json({

@@ -64,7 +64,8 @@ A secure backend REST API built with **Node.js**, **Express.js**, **MongoDB**, a
 - Axios
 - Nodemailer
 - Paystack API
-
+- winston
+- winston-transport
 ---
 
 ## 📁 Project Structure

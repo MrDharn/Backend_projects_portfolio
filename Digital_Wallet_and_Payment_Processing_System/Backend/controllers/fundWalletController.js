@@ -11,10 +11,14 @@ const userModel = require("../Models/Users");
 const transactionModel = require("../Models/Transaction");
 const walletModel = require("../Models/Wallet");
 
-// Import logger
+// Import decoupled database-backed loggers
 const { auditLogger, fraudLogger } = require('../utils/logger');
 
 const fundWallet = async (req, res) => {
+  // Extract client metadata info early for accurate system context tracking
+  const ipAddress = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const deviceInfo = req.headers['user-agent'] || 'unknown';
+
   try {
     const { amount } = req.body;
     if (!amount)
@@ -32,10 +36,12 @@ const fundWallet = async (req, res) => {
     const user = await userModel.findOne({ email: req.user.email });
     if (!user) {
       // FRAUD LOG: Attempting to fund an account with a token that doesn't map to a real user email
-      fraudLogger.warn("Deposit failed: Authenticated email has no user record", {
-        email: req.user.email,
-        ipAddress: req.ip || req.headers['x-forwarded-for']
+      fraudLogger.warn("Deposit initialization failed: Authenticated email has no user record", {
+        userId: req.user?.id || null,
+        transactionId: null,
+        status: "INVESTIGATING"
       });
+
       return res.status(404).json({
         status: "failed",
         message: "user does not exist",
@@ -67,12 +73,11 @@ const fundWallet = async (req, res) => {
       referenceId,
     );
 
-    // AUDIT LOG: Track deposit initialization milestones
-    auditLogger.info("Deposit payment gateway session initiated", {
+    // AUDIT LOG: Maps to user audit pipeline tracking system metrics
+    auditLogger.info(`Initiated deposit payment gateway session for ₦${amount}`, {
       userId: user._id,
-      walletId: wallet._id,
-      amount,
-      referenceId
+      ipAddress: ipAddress,
+      deviceInfo: deviceInfo
     });
 
     return res.status(200).json({
@@ -83,12 +88,13 @@ const fundWallet = async (req, res) => {
       authorizationUrl: paystackService.data.authorization_url
     });
   } catch (e) {
-    // System exceptions should always be flagged inside the engineering audit log
-    auditLogger.error("Critical error while initializing wallet funding", {
-      error: e.message,
-      stack: e.stack,
-      userEmail: req.user?.email
+    // Audit Log for unexpected software errors
+    auditLogger.error(`System exception while initializing wallet funding: ${e.message}`, {
+      userId: req.user?.id || null,
+      ipAddress: ipAddress,
+      deviceInfo: deviceInfo
     });
+
     return res.status(500).json({
       status: "failed",
       message: "Something went wrong",
@@ -100,7 +106,8 @@ const verificationController = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  const ipAddress = req.ip || req.headers['x-forwarded-for'];
+  const ipAddress = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const deviceInfo = req.headers['user-agent'] || 'unknown';
 
   try {
     const { reference } = req.query;
@@ -111,11 +118,14 @@ const verificationController = async (req, res) => {
       
     if (!transaction) {
       await session.abortTransaction();
-      // FRAUD LOG: Verifying a transaction reference that doesn't exist in our DB
-      fraudLogger.warn("Verification failed: Reference ID not found in database", {
-        attemptedReference: reference,
-        ipAddress
+      
+      // FRAUD LOG: Parameter validation tracking anomaly
+      fraudLogger.warn(`Verification engine rejected: Reference ID ${reference} not found in database`, {
+        userId: req.user?.id || null,
+        transactionId: null,
+        status: "INVESTIGATING"
       });
+
       return res.status(404).json({
         status: "failed",
         message: "Cannot find such transaction",
@@ -133,10 +143,14 @@ const verificationController = async (req, res) => {
 
     if (transaction.status === "SUCCESS") {
       await session.abortTransaction();
-      // AUDIT LOG: Harmless double-tap verification (e.g., user refreshing page)
-      auditLogger.info("Verification skipped: Transaction already marked successful", {
-        referenceId: reference
+
+      // AUDIT LOG: Normal duplicate query trace
+      auditLogger.info(`Verification bypassed: Transaction reference ${reference} already updated`, {
+        userId: req.user.id,
+        ipAddress: ipAddress,
+        deviceInfo: deviceInfo
       });
+
       return res.status(404).json({
         status: "failed",
         message: "This transaction is already processed",
@@ -152,28 +166,31 @@ const verificationController = async (req, res) => {
     // DATA INTEGRITY CHECK 1: Reference mismatch
     if (payment.reference !== transaction.referenceId) {
       await session.abortTransaction();
-      fraudLogger.error("CRITICAL FRAUD ALERT: Gateway reference mismatch during verification", {
-        dbReference: transaction.referenceId,
-        gatewayReturnedReference: payment.reference,
+
+      // FRAUD LOG: Flag reference signature modification attempt
+      fraudLogger.error(`CRITICAL FRAUD: Payment gateway verification reference mismatch (DB: ${transaction.referenceId} vs Gateway: ${payment.reference})`, {
         userId: req.user.id,
-        ipAddress
+        transactionId: transaction._id,
+        status: "INVESTIGATING"
       });
+      
       return res.status(400).json({
         status: "failed",
         message: "ReferenceId does not match",
       });
     }
 
-    // DATA INTEGRITY CHECK 2: Amount manipulation mismatch (Paystack tracks in kobo/cents)
+    // DATA INTEGRITY CHECK 2: Amount manipulation mismatch
     if (payment.amount !== transaction.amount * 100) {
       await session.abortTransaction();
-      fraudLogger.error("CRITICAL FRAUD ALERT: Gateway amount mismatch during verification", {
-        referenceId: transaction.referenceId,
-        dbExpectedAmount: transaction.amount * 100,
-        gatewayPaidAmount: payment.amount,
+
+      // FRAUD LOG: Critical verification value attack
+      fraudLogger.error(`CRITICAL FRAUD: Amount manipulation mismatch. Expected kobo/cents amount: ${transaction.amount * 100}, Gateway returned: ${payment.amount}`, {
         userId: req.user.id,
-        ipAddress
+        transactionId: transaction._id,
+        status: "INVESTIGATING"
       });
+
       return res.status(400).json({
         status: "failed",
         message: "amount processed is not Valid",
@@ -183,12 +200,14 @@ const verificationController = async (req, res) => {
     // DATA INTEGRITY CHECK 3: Currency tampering
     if (payment.currency !== wallet.currency) {
         await session.abortTransaction();
-        fraudLogger.error("CRITICAL FRAUD ALERT: Currency mismatch during deposit verification", {
-            referenceId: transaction.referenceId,
-            walletCurrency: wallet.currency,
-            gatewayCurrency: payment.currency,
-            userId: req.user.id
+
+        // FRAUD LOG: Processing currency parameter attack vector
+        fraudLogger.error(`CRITICAL FRAUD: Local wallet settlement currency mismatch (${wallet.currency} vs Gateway: ${payment.currency})`, {
+            userId: req.user.id,
+            transactionId: transaction._id,
+            status: "INVESTIGATING"
         });
+
         return res.status(400).json({
             status: "failed",
             message: "currency mismatch"
@@ -204,13 +223,11 @@ const verificationController = async (req, res) => {
       await wallet.save({ session });
       await session.commitTransaction();
 
-      // AUDIT LOG: Factual ledger shift recorded
-      auditLogger.info("Wallet successfully funded via gateway deposit", {
-        referenceId: transaction.referenceId,
+      // AUDIT LOG: Log full ledger update success context matching the model structure
+      auditLogger.info(`Successfully credited user account with ₦${transaction.amount} via online deposit`, {
         userId: req.user.id,
-        walletId: wallet._id,
-        amountAdded: transaction.amount,
-        newBalance: wallet.balance
+        ipAddress: ipAddress,
+        deviceInfo: deviceInfo
       });
 
       // DISPATCH DEPOSIT TEMPLATE EMAIL
@@ -236,9 +253,11 @@ const verificationController = async (req, res) => {
     await transaction.save({ session });
     await session.commitTransaction();
 
-    auditLogger.info("Deposit transaction marked as failed by payment processor", {
-      referenceId: transaction.referenceId,
-      userId: req.user.id
+    // AUDIT LOG: Business process failure trace
+    auditLogger.info(`Deposit verification closed: Marked as FAILED by external payment terminal for ref: ${transaction.referenceId}`, {
+      userId: req.user.id,
+      ipAddress: ipAddress,
+      deviceInfo: deviceInfo
     });
 
     return res.status(400).json({
@@ -250,11 +269,14 @@ const verificationController = async (req, res) => {
     if (session.inTransaction()) {
         await session.abortTransaction();
     }
-    auditLogger.error("System crash during payment verification pipeline", {
-      error: e.message,
-      stack: e.stack,
-      attemptedQueryReference: req.query?.reference
+
+    // AUDIT LOG: Unhandled tracking capture point
+    auditLogger.error(`Database atomic verification workflow collapsed: ${e.message}`, {
+      userId: req.user?.id || null,
+      ipAddress: ipAddress,
+      deviceInfo: deviceInfo
     });
+
     return res.status(500).json({
       status: "failed",
       message: "verification could not be completed",

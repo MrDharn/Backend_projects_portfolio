@@ -8,9 +8,14 @@ const generateReference = require("../utils/generateReference")
 const mongoose = require('mongoose')
 const bcrypt = require('bcrypt')
 
+// Import  loggers
+const { auditLogger, fraudLogger } = require('../utils/logger');
+
 const transferToWallet = async (req, res) => {
     const session = await mongoose.startSession()
     session.startTransaction();
+
+    const ipAddress = req.ip || req.headers['x-forwarded-for'];
 
     try {
         let { fromWalletNumber, toWalletNumber, amount, pin } = req.body
@@ -50,6 +55,14 @@ const transferToWallet = async (req, res) => {
         const fromWallet = await walletModel.findOne({ walletNumber: fromWalletNumber }).select("+pin").session(session);
         if (!fromWallet) { 
             await session.abortTransaction();
+
+            // FRAUD LOG: Attempting to move funds from a non-existent wallet number
+            fraudLogger.warn("Unauthorized transfer attempt: Origin wallet number not found", {
+                attemptedSource: fromWalletNumber,
+                ipAddress,
+                userId: req.user?.id
+            });
+
             return res.status(404).json({
                 status: "failed",
                 message: "Origin wallet not found"
@@ -78,6 +91,15 @@ const transferToWallet = async (req, res) => {
         // Enforce strong balance logic check
         if (fromWallet.balance < amount) {
             await session.abortTransaction();
+
+            // AUDIT LOG: Business logic rejection context tracking
+            auditLogger.info("Transfer rejected: Insufficient funds", {
+                walletNumber: fromWalletNumber,
+                currentBalance: fromWallet.balance,
+                requestedAmount: amount,
+                userId: req.user?.id
+            });
+
             return res.status(400).json({
                 status: "failed",
                 message: "Insufficient Balance"
@@ -89,6 +111,15 @@ const transferToWallet = async (req, res) => {
         const isPinValid = await bcrypt.compare(pin, fromWallet.pin)
         if (!isPinValid) {
             await session.abortTransaction();
+
+            // FRAUD LOG: Log incorrect PIN verification attempts as security risks
+            fraudLogger.warn("Security Alert: Wallet transfer PIN mismatch", {
+                walletNumber: fromWalletNumber,
+                targetRecipient: toWalletNumber,
+                ipAddress,
+                userId: req.user?.id
+            });
+
             return res.status(401).json({ 
                 status: "failed",
                 message: "Invalid security PIN"
@@ -106,13 +137,12 @@ const transferToWallet = async (req, res) => {
         // 2. Log Ledger Entry
         const reference = generateReference();
         
-        // Generate a single transaction log tracking both sides, or clone for distinct user statements
         const transaction = new transactionModel({
             userId: req.user.id, 
             senderWallet: fromWalletNumber,
             receiverWallet: toWalletNumber,
             type_of_transaction: "TRANSFER",
-            status: "SUCCESS", // Mark successful since we are inside a guaranteed ACID block
+            status: "SUCCESS", 
             referenceId: reference,
             amount: amount
         });
@@ -122,6 +152,15 @@ const transferToWallet = async (req, res) => {
         // 3. Commit Transaction State
         await session.commitTransaction();
         
+        // AUDIT LOG: Factual snapshot logging upon hard persistence confirmation
+        auditLogger.info("Wallet-to-Wallet Transfer Completed Successfully", {
+            referenceId: reference,
+            fromWallet: fromWalletNumber,
+            toWallet: toWalletNumber,
+            amount,
+            initiatorId: req.user.id
+        });
+
         return res.status(200).json({
             status: "success",
             message: `You have successfully transferred ${amount} to wallet ${toWalletNumber}`,
@@ -132,7 +171,14 @@ const transferToWallet = async (req, res) => {
         if (session.inTransaction()) {
             await session.abortTransaction();
         }
-        console.error("Transfer system error:", e);
+
+        // Log unexpected structural exceptions to audit log for internal debugging
+        auditLogger.error("Transfer system transaction runtime failure", {
+            error: e.message,
+            stack: e.stack,
+            payload: { fromWalletNumber, toWalletNumber, amount }
+        });
+
         return res.status(500).json({
             status: "failed",
             message: "Something went wrong"
@@ -153,6 +199,13 @@ const verificationController = async (req, res) => {
         const transaction = await transactionModel.findOne({ referenceId: reference }).session(session);
         if (!transaction) {
             await session.abortTransaction();
+
+            // FRAUD LOG: Attempted manual parameter polling for references that don't exist
+            fraudLogger.warn("Verification system lookup failed: Reference ID not found", {
+                attemptedReference: reference,
+                ipAddress: req.ip || req.headers['x-forwarded-for']
+            });
+
             return res.status(404).json({
                 status: "failed",
                 message: "No such transaction is in existence"
@@ -161,6 +214,12 @@ const verificationController = async (req, res) => {
 
         if (transaction.status === "SUCCESS") {
             await session.abortTransaction();
+
+            // AUDIT LOG: Informational trace showing duplicate check attempts on processed entries
+            auditLogger.info("Internal transfer lookup: Item verified as historically successful", {
+                referenceId: reference
+            });
+
             return res.status(200).json({
                 status: "success",
                 message: "Transaction verified successfully",
@@ -174,13 +233,19 @@ const verificationController = async (req, res) => {
         if (session.inTransaction()) {
             await session.abortTransaction();
         }
-        console.error("Verification engine error:", e);
+
+        auditLogger.error("Internal transfer verification engine failed", {
+            error: e.message,
+            stack: e.stack,
+            attemptedQueryReference: req.query?.reference
+        });
+
         return res.status(500).json({
             status: "failed",
             message: "Something went wrong"
         })
     } finally {
-        session.endSession()
+        await session.endSession()
     }
 }
 

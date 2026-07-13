@@ -169,7 +169,7 @@ This project demonstrates practical backend engineering concepts including:
 - Webhooks
 - Redis Caching
 - Rate Limiting
-- Audit Logs
+- Audit Logs (done and Added) and fraudLogs
 - Docker Support
 - Unit & Integration Tests
 - CI/CD Pipeline

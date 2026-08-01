@@ -138,12 +138,6 @@ const Login = async (req, res) => {
       JWT_SECRET_KEY,
       { expiresIn: "60m" },
     );
-    // Generate Token
-    const token = jwt.sign(
-      { id: user._id, email, role: user.role, name: user.name },
-      JWT_SECRET_KEY,
-      { expiresIn: "60m" },
-    );
 
     const refreshToken = jwt.sign(
       { email: user.email, role: user.role, name: user.name },

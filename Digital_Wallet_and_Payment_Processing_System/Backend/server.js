@@ -1,8 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 
-const { Server } = require("socket.io");
-const server = require("http");
+// const { Server } = require("socket.io");
+const http = require("http");
 const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT;
@@ -10,39 +10,39 @@ const dns = require("dns");
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 //Using the socket io for real time update
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: `http://localhost:${PORT}`,
-    methods: ["GET", "POST"],
-  },
-});
+// const server = http.createServer(app);
+// const io = new Server(server, {
+//   cors: {
+//     origin: `http://localhost:${PORT}`,
+//     methods: ["GET", "POST"],
+//   },
+// });
 
 //link users with the socket instance
-const activeUsers = new Set();
+// const activeUsers = new Set();
 
-io.on("connection", (socket) => {
-  console.log("Client connected: ${socket.id}");
+// io.on("connection", (socket) => { 
+//   console.log("Client connected: ${socket.id}");
 
-  //when new users join the server
+//   //when new users join the server
 
-  socket.on("register_user", (userId) => {
-    activeUsers.set(String(userId), socket.id);
-    console.log(` User ${userId} registered to socket ${socket.id}`);
-  });
+//   socket.on("register_user", (userId) => {
+//     activeUsers.set(String(userId), socket.id);
+//     console.log(` User ${userId} registered to socket ${socket.id}`);
+//   });
 
-  //instance for disconnection
-  socket.on("disconnect", () => {
-    for (const [userId, socketId] of activeUsers.entries()) {
-      if (socketId === socket.id) {
-        activeUsers.delete(userId);
+//   //instance for disconnection
+//   socket.on("disconnect", () => {
+//     for (const [userId, socketId] of activeUsers.entries()) {
+//       if (socketId === socket.id) {
+//         activeUsers.delete(userId);
 
-        console.log(`User ${userId} disconnected`);
-        break;
-      }
-    }
-  });
-});
+//         console.log(`User ${userId} disconnected`);
+//         break;
+//       }
+//     }
+//   });
+// });
 //Import functions
 const connectDB = require("./utils/db");
 const authRoutes = require("./routes/authRoutes");
@@ -56,7 +56,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
-  ((req.io = io), (req.activeUsers = activeUsers));
+  // ((req.io = io), (req.activeUsers = activeUsers));
   console.log(`Getting request from ${req.url} using the ${req.method}`);
   next();
 });

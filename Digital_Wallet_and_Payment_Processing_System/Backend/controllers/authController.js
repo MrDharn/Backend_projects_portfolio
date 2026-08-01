@@ -406,4 +406,4 @@ const ChangePin = async(req,res)=>{
   }
 }
 
-module.exports = { Login, ChangePassword, SetPin, ChangePin };
+module.exports = { Login, ChangePassword, SetPin, ChangePin , Register};

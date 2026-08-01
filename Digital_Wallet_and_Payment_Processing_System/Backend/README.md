@@ -64,7 +64,8 @@ A secure backend REST API built with **Node.js**, **Express.js**, **MongoDB**, a
 - Axios
 - Nodemailer
 - Paystack API
-
+- winston
+- winston-transport
 ---
 
 ## 📁 Project Structure
@@ -169,7 +170,7 @@ This project demonstrates practical backend engineering concepts including:
 - Webhooks
 - Redis Caching
 - Rate Limiting
-- Audit Logs
+- Audit Logs (done and Added) and fraudLogs
 - Docker Support
 - Unit & Integration Tests
 - CI/CD Pipeline

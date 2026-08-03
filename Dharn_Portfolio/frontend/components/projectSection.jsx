@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { getProjects, getFeaturedProjects } from '../services/api';
 
-const ProjectsSection = ({ apiBaseUrl }) => {
+const ProjectsSection = () => {
   const [projects, setProjects] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [activeTab, setActiveTab] = useState('featured');
@@ -12,15 +13,12 @@ const ProjectsSection = ({ apiBaseUrl }) => {
       setLoading(true);
       try {
         const [projectsRes, featuredRes] = await Promise.all([
-          fetch(`${apiBaseUrl}/api/projects`),
-          fetch(`${apiBaseUrl}/api/projects/featured`)
+            getFeaturedProjects(),
+            getProjects()
         ]);
 
-        const projectsData = await projectsRes.json();
-        const featuredData = await featuredRes.json();
-
-        setProjects(projectsData.data || []);
-        setFeatured(featuredData.data || []);
+        setProjects(projectsRes.data || []);
+        setFeatured(featuredRes.data || []);
       } catch (err) {
         setError('Failed to load projects.');
       } finally {
@@ -29,7 +27,7 @@ const ProjectsSection = ({ apiBaseUrl }) => {
     };
 
     loadProjects();
-  }, [apiBaseUrl]);
+  }, []);
 
   const displayedProjects = activeTab === 'featured' ? featured : projects;
 

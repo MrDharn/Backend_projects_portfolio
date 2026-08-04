@@ -23,8 +23,8 @@ export const AuthProvider = ({children}) => {
 
       try{
         const response = await getProfile();
-        console.log(response)
-        setUser(response.data);
+        // console.log(response)
+        setUser(response);
       }catch(e){
         console.log(e)
       }

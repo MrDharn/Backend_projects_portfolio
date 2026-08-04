@@ -56,7 +56,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
-  // ((req.io = io), (req.activeUsers = activeUsers));
   console.log(`Getting request from ${req.url} using the ${req.method}`);
   next();
 });

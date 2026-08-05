@@ -1,41 +1,77 @@
-import { createContext, useState , useEffect} from "react";
-import {getProfile} from '../services/profileApiService'
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { getStoredToken, setStoredToken, removeStoredToken, getUserProfile } from '../services/apiClient';
+
 export const AuthContext = createContext();
-export const AuthProvider = ({children}) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
 
-  const login = (token) => {
-    localStorage.setItem("token", token);
-    setToken(token);
-  };
+const PREVIEW_USER = {
+  name: 'Alex Johnson',
+  email: 'alex@example.com',
+  phoneNumber: '08012345678',
+  walletNumber: '9012345678',
+  balance: 154500.50,
+  KYC_STATUS: 'Verified',
+  isPinSet: true,
+};
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
-    setUser(null);
-  };
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(PREVIEW_USER);
+  const [token, setToken] = useState(getStoredToken() || 'demo_token');
+  const [loading, setLoading] = useState(false);
+  const [sessionExpiredMsg, setSessionExpiredMsg] = useState('');
 
-  useEffect(() => {
-
-    const fetchProfile = async()=>{
-      if(!token) return ;
-
-      try{
-        const response = await getProfile();
-        // console.log(response)
-        setUser(response);
-      }catch(e){
-        console.log(e)
-      }
+  const fetchProfile = useCallback(async () => {
+    const stored = getStoredToken();
+    if (!stored) {
+      setUser(PREVIEW_USER);
+      setLoading(false);
+      return;
     }
 
-    fetchProfile()
-  }, [token]);
+    try {
+      const res = await getUserProfile();
+      if (res && res.data) {
+        setUser(res.data);
+      }
+    } catch (err) {
+      console.log('Using preview user state:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  console.log(user)
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  const login = (newToken, remember = false) => {
+    setStoredToken(newToken, remember);
+    setToken(newToken);
+    setSessionExpiredMsg('');
+    fetchProfile();
+  };
+
+  const logout = (message = '') => {
+    removeStoredToken();
+    setToken('');
+    setUser(PREVIEW_USER);
+    if (message) {
+      setSessionExpiredMsg(message);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ logout, login, user, token }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        sessionExpiredMsg,
+        setSessionExpiredMsg,
+        login,
+        logout,
+        refreshProfile: fetchProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

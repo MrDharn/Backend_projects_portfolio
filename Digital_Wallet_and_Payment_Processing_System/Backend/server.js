@@ -51,6 +51,9 @@ const fundwalletRoute = require("./routes/fundWalletRoute");
 const withdrawfundsRoute = require("./routes/withdrawFundRoute");
 const profileRoute = require("./routes/profileRoute");
 const transferRoute = require("./routes/walletTransferRoute");
+const historyTransactionRoute = require("./routes/historyTransactionRoute");
+const { ChangePassword } = require("./controllers/authController");
+const authenticationMiddleware = require("./middlewares/authMiddleware");
 
 app.use(cors());
 app.use(express.json());
@@ -70,7 +73,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/wallet", walletRoutes);
 
 //deposit route
-app.use("/api/v1/wallet/", fundwalletRoute);
+app.use("/api/v1/wallet", fundwalletRoute);
 
 //transfer route
 app.use("/api/v1/wallet", withdrawfundsRoute);
@@ -80,6 +83,13 @@ app.use("/api/v1/wallet", transferRoute);
 
 //profile route
 app.use("/api/v1/wallet", profileRoute);
+
+//history transactions route
+app.use("/api/v1/wallet", historyTransactionRoute);
+
+//alias change-password under wallet as per spec table
+app.post("/api/v1/wallet/change-password", authenticationMiddleware, ChangePassword);
+
 
 const startServer = async () => {
   try {

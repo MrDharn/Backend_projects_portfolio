@@ -3,27 +3,16 @@ import { getStoredToken, setStoredToken, removeStoredToken, getUserProfile } fro
 
 export const AuthContext = createContext();
 
-const PREVIEW_USER = {
-  name: 'Alex Johnson',
-  email: 'alex@example.com',
-  phoneNumber: '08012345678',
-  walletNumber: '9012345678',
-  balance: 154500.50,
-  KYC_STATUS: 'Verified',
-  isPinSet: true,
-};
-
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(PREVIEW_USER);
-  const [token, setToken] = useState(getStoredToken() || 'demo_token');
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(getStoredToken() || '');
+  const [isInitialized, setIsInitialized] = useState(false);
   const [sessionExpiredMsg, setSessionExpiredMsg] = useState('');
 
   const fetchProfile = useCallback(async () => {
     const stored = getStoredToken();
     if (!stored) {
-      setUser(PREVIEW_USER);
-      setLoading(false);
+      setUser(null);
       return;
     }
 
@@ -33,14 +22,21 @@ export const AuthProvider = ({ children }) => {
         setUser(res.data);
       }
     } catch (err) {
-      console.log('Using preview user state:', err);
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch user profile:', err);
     }
   }, []);
 
   useEffect(() => {
-    fetchProfile();
+    const initAuth = async () => {
+      const stored = getStoredToken();
+      if (stored) {
+        setToken(stored);
+        await fetchProfile();
+      }
+      setIsInitialized(true);
+    };
+
+    initAuth();
   }, [fetchProfile]);
 
   const login = (newToken, remember = false) => {
@@ -53,7 +49,7 @@ export const AuthProvider = ({ children }) => {
   const logout = (message = '') => {
     removeStoredToken();
     setToken('');
-    setUser(PREVIEW_USER);
+    setUser(null);
     if (message) {
       setSessionExpiredMsg(message);
     }
@@ -64,7 +60,7 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         token,
-        loading,
+        isInitialized,
         sessionExpiredMsg,
         setSessionExpiredMsg,
         login,

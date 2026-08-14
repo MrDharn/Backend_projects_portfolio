@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { changePassword } from '../services/apiClient';
 import Navbar from '../components/Navbar';
 import BottomNav from '../components/BottomNav';
@@ -13,48 +14,43 @@ const ChangePassword = () => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
     if (!formData.oldPassword || !formData.newPassword || !formData.confirmPassword) {
-      setError('Please fill in all password fields.');
+      toast.error('Please fill in all password fields.');
       return;
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
-      setError('New password and confirmation do not match.');
+      toast.error('New password and confirmation do not match.');
       return;
     }
 
     if (formData.oldPassword === formData.newPassword) {
-      setError('New password must be different from your old password.');
+      toast.error('New password must be different from your current password.');
       return;
     }
 
     try {
       setLoading(true);
-      // TODO: confirm exact field names against live API docs
       await changePassword({
         oldPassword: formData.oldPassword,
         newPassword: formData.newPassword,
         confirmPassword: formData.confirmPassword,
       });
 
-      setSuccess(true);
+      toast.success('Password updated successfully! Please sign in again.');
       setTimeout(() => {
-        navigate('/profile');
-      }, 1500);
+        navigate('/login');
+      }, 1200);
     } catch (err) {
-      setError(err.message || 'Failed to change password.');
+      toast.error(err.message || 'Failed to change password.');
     } finally {
       setLoading(false);
     }
@@ -67,9 +63,6 @@ const ChangePassword = () => {
       <main className="app-container">
         <div className="card">
           <h1 className="screen-title" style={{ marginBottom: '16px' }}>Change Password</h1>
-
-          {error && <div className="alert-block alert-danger">{error}</div>}
-          {success && <div className="alert-block alert-success">Password updated successfully! Redirecting...</div>}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -114,7 +107,7 @@ const ChangePassword = () => {
               />
             </div>
 
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }} disabled={loading || success}>
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }} disabled={loading}>
               {loading ? 'Updating Password...' : 'Update Password'}
             </button>
           </form>

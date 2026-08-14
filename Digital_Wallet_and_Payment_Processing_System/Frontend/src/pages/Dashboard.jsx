@@ -1,12 +1,14 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { AuthContext } from '../context/AuthContext';
 import { getTransactionHistory } from '../services/apiClient';
 import Navbar from '../components/Navbar';
 import BottomNav from '../components/BottomNav';
-import { ArrowDownLeft, ArrowUpRight, History, Copy, Check, Eye, EyeOff } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, History, Copy, Check, Eye, EyeOff, RefreshCw } from 'lucide-react';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { user, refreshProfile } = useContext(AuthContext);
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [loadingTx, setLoadingTx] = useState(true);
@@ -16,23 +18,13 @@ const Dashboard = () => {
 
   const fetchTransactions = useCallback(async () => {
     try {
+      setLoadingTx(true);
       const res = await getTransactionHistory();
-      if (res && (res.transactions || res.data) && (res.transactions || res.data).length > 0) {
-        const txList = res.transactions || res.data || [];
-        setRecentTransactions(txList.slice(0, 5));
-      } else {
-        setRecentTransactions([
-          { _id: 'tx_1', type_of_transaction: 'DEPOSIT', amount: 50000, status: 'SUCCESS', referenceId: 'DEP-849201', createdAt: new Date().toISOString() },
-          { _id: 'tx_2', type_of_transaction: 'TRANSFER', amount: 12500, status: 'SUCCESS', receiverWallet: '8091234567', referenceId: 'TRF-102938', createdAt: new Date(Date.now() - 86400000).toISOString() },
-          { _id: 'tx_3', type_of_transaction: 'WITHDRAWAL', amount: 20000, status: 'SUCCESS', referenceId: 'WTH-582910', createdAt: new Date(Date.now() - 172800000).toISOString() },
-        ]);
-      }
+      const list = res?.transactions || res?.data?.transactions || res?.data || (Array.isArray(res) ? res : []);
+      setRecentTransactions(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error('Failed to load recent transactions:', err);
-      setRecentTransactions([
-        { _id: 'tx_1', type_of_transaction: 'DEPOSIT', amount: 50000, status: 'SUCCESS', referenceId: 'DEP-849201', createdAt: new Date().toISOString() },
-        { _id: 'tx_2', type_of_transaction: 'TRANSFER', amount: 12500, status: 'SUCCESS', receiverWallet: '8091234567', referenceId: 'TRF-102938', createdAt: new Date(Date.now() - 86400000).toISOString() },
-      ]);
+      setRecentTransactions([]);
     } finally {
       setLoadingTx(false);
     }
@@ -43,9 +35,9 @@ const Dashboard = () => {
     fetchTransactions();
   }, [refreshProfile, fetchTransactions]);
 
-  // Revolut-style count-up animation on balance figure (~700ms spring)
+  // Count-up animation on balance figure (~700ms spring)
   useEffect(() => {
-    const target = Number(user?.balance || 154500.5);
+    const target = Number(user?.balance || 0);
     let start = 0;
     const duration = 700;
     const startTime = performance.now();
@@ -70,23 +62,62 @@ const Dashboard = () => {
     if (user?.walletNumber) {
       navigator.clipboard.writeText(String(user.walletNumber));
       setCopied(true);
+      toast.success('Wallet number copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const handleRefresh = async () => {
+    toast.info('Refreshing wallet data...');
+    await refreshProfile();
+    await fetchTransactions();
+    toast.success('Wallet updated');
+  };
+
   const formatAmount = (num) => {
-    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(num || 0);
+    const parsed = Number(num) || 0;
+    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(parsed);
   };
 
   const getCategoryMeta = (type) => {
     const t = (type || '').toUpperCase();
-    if (t === 'DEPOSIT') {
-      return { color: 'var(--cyan)', bg: 'rgba(61, 220, 255, 0.15)', icon: <ArrowDownLeft size={20} strokeWidth={2} color="var(--cyan)" />, label: 'Deposit' };
+    if (t === 'DEPOSIT' || t === 'CREDIT') {
+      return {
+        color: 'var(--cyan)',
+        bg: 'rgba(61, 220, 255, 0.15)',
+        icon: <ArrowDownLeft size={20} strokeWidth={2} color="var(--cyan)" />,
+        label: 'Deposit',
+        isPositive: true,
+      };
     }
     if (t === 'TRANSFER') {
-      return { color: 'var(--violet)', bg: 'rgba(139, 92, 246, 0.15)', icon: <ArrowUpRight size={20} strokeWidth={2} color="var(--violet)" />, label: 'Transfer' };
+      return {
+        color: 'var(--violet)',
+        bg: 'rgba(139, 92, 246, 0.15)',
+        icon: <ArrowUpRight size={20} strokeWidth={2} color="var(--violet)" />,
+        label: 'Transfer',
+        isPositive: false,
+      };
     }
-    return { color: 'var(--coral)', bg: 'rgba(255, 92, 108, 0.15)', icon: <ArrowUpRight size={20} strokeWidth={2} color="var(--coral)" />, label: 'Withdrawal' };
+    return {
+      color: 'var(--coral)',
+      bg: 'rgba(255, 92, 108, 0.15)',
+      icon: <ArrowUpRight size={20} strokeWidth={2} color="var(--coral)" />,
+      label: 'Withdrawal',
+      isPositive: false,
+    };
+  };
+
+  const getTransactionTitle = (tx) => {
+    const type = (tx.type_of_transaction || tx.type || '').toUpperCase();
+    if (type === 'DEPOSIT' || type === 'CREDIT') return 'Wallet Deposit';
+    if (type === 'TRANSFER') {
+      return tx.receiverWallet ? `Transfer to ${tx.receiverWallet}` : 'Wallet Transfer';
+    }
+    if (type === 'WITHDRAWAL' || type === 'DEBIT') {
+      return tx.bankName ? `Withdrawal to ${tx.bankName}` : 'Bank Withdrawal';
+    }
+    return tx.description || 'Transaction';
   };
 
   const renderStatusBadge = (status) => {
@@ -111,22 +142,41 @@ const Dashboard = () => {
             <span className="font-label" style={{ color: 'rgba(245, 245, 250, 0.75)' }}>
               AVAILABLE BALANCE
             </span>
-            <button
-              onClick={() => setHideBalance(!hideBalance)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: 'none',
-                borderRadius: '50%',
-                padding: '6px',
-                cursor: 'pointer',
-                color: 'var(--text-primary)',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-              title={hideBalance ? 'Show balance' : 'Hide balance'}
-            >
-              {hideBalance ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                onClick={handleRefresh}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  padding: '6px',
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title="Refresh wallet"
+              >
+                <RefreshCw size={14} strokeWidth={2} />
+              </button>
+
+              <button
+                onClick={() => setHideBalance(!hideBalance)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  padding: '6px',
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title={hideBalance ? 'Show balance' : 'Hide balance'}
+              >
+                {hideBalance ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
+              </button>
+            </div>
           </div>
 
           <div className="balance-figure" style={{ marginBottom: '20px' }}>
@@ -137,7 +187,7 @@ const Dashboard = () => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              justify: 'space-between',
+              justifyContent: 'space-between',
               paddingTop: '16px',
               borderTop: '1px solid rgba(255, 255, 255, 0.2)',
             }}
@@ -183,12 +233,23 @@ const Dashboard = () => {
             <span>Deposit</span>
           </Link>
 
-          <Link to="/transfer" className="quick-action-pill">
+          <button
+            onClick={() => {
+              if (user && user.isPinSet === false) {
+                toast.info('Please set your 4-digit transaction PIN before making transfers.');
+                navigate('/set-pin', { state: { from: '/transfer' } });
+              } else {
+                navigate('/transfer');
+              }
+            }}
+            className="quick-action-pill"
+            style={{ background: 'var(--surface-1)', border: 'none', cursor: 'pointer' }}
+          >
             <div className="action-tile-icon" style={{ backgroundColor: 'rgba(139, 92, 246, 0.2)', color: 'var(--violet)' }}>
               <ArrowUpRight size={16} strokeWidth={2} />
             </div>
             <span>Transfer</span>
-          </Link>
+          </button>
 
           <Link to="/transactions" className="quick-action-pill">
             <div className="action-tile-icon" style={{ backgroundColor: 'rgba(245, 245, 250, 0.15)', color: 'var(--text-primary)' }}>
@@ -201,42 +262,42 @@ const Dashboard = () => {
         {/* Category-Coded Transaction List Container */}
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h2 className="section-header">Recent Activity</h2>
-            <Link to="/transactions" style={{ fontSize: '13px', color: 'var(--violet)', textDecoration: 'none', fontWeight: 600 }}>
-              See all
-            </Link>
+            <h2 className="section-header">Transaction History</h2>
+            {recentTransactions.length > 0 && (
+              <Link to="/transactions" style={{ fontSize: '13px', color: 'var(--violet)', textDecoration: 'none', fontWeight: 600 }}>
+                View All ({recentTransactions.length})
+              </Link>
+            )}
           </div>
 
           <div className="transaction-card-container">
             {loadingTx ? (
               <p className="caption-text" style={{ padding: '24px 0', textAlign: 'center' }}>
-                Loading activity...
+                Loading transaction history...
               </p>
             ) : recentTransactions.length === 0 ? (
-              <div style={{ padding: '32px 0', textAlign: 'center' }}>
-                <p className="caption-text">No recent transactions.</p>
+              <div style={{ padding: '36px 20px', textAlign: 'center' }}>
+                <p className="body-lg" style={{ marginBottom: '6px', color: 'var(--text-secondary)' }}>No transactions yet</p>
+                <p className="caption-text">
+                  Your deposits and transfers will appear here automatically.
+                </p>
               </div>
             ) : (
               recentTransactions.map((tx, idx) => {
                 const type = tx.type_of_transaction || tx.type || '';
-                const isDeposit = type.toUpperCase() === 'DEPOSIT';
                 const meta = getCategoryMeta(type);
+                const title = getTransactionTitle(tx);
 
                 return (
-                  <div key={tx._id || tx.id || idx} className="transaction-row-aurora">
+                  <div key={tx._id || tx.id || tx.referenceId || idx} className="transaction-row-aurora">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      {/* 40px Category Tinted Tile */}
                       <div className="category-icon-tile" style={{ backgroundColor: meta.bg }}>
                         {meta.icon}
                       </div>
 
                       <div>
                         <p className="body-lg" style={{ fontSize: '15px' }}>
-                          {isDeposit
-                            ? 'Wallet Deposit'
-                            : tx.receiverWallet
-                            ? `Transfer to ${tx.receiverWallet}`
-                            : 'Bank Withdrawal'}
+                          {title}
                         </p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
                           <span className="caption-text">
@@ -244,13 +305,21 @@ const Dashboard = () => {
                           </span>
                           <span>•</span>
                           {renderStatusBadge(tx.status)}
+                          {tx.referenceId && (
+                            <>
+                              <span>•</span>
+                              <span className="caption-text" style={{ fontSize: '11px', fontVariantNumeric: 'tabular-nums' }}>
+                                Ref: {tx.referenceId.slice(0, 14)}...
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <p className="body-lg" style={{ color: isDeposit ? 'var(--lime)' : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                        {isDeposit ? '+' : '−'}{formatAmount(tx.amount)}
+                      <p className="body-lg" style={{ color: meta.isPositive ? 'var(--lime)' : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                        {meta.isPositive ? '+' : '−'}{formatAmount(tx.amount)}
                       </p>
                     </div>
                   </div>

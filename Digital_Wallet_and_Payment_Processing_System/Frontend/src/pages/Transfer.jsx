@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { AuthContext } from '../context/AuthContext';
 import { transferWalletToWallet, withdrawToBank, verifyTransferStatus } from '../services/apiClient';
 import Navbar from '../components/Navbar';
@@ -21,37 +22,46 @@ const Transfer = () => {
 
   const [loading, setLoading] = useState(false);
   const [polling, setPolling] = useState(false);
-  const [error, setError] = useState('');
   const [transferResult, setTransferResult] = useState(null);
 
   useEffect(() => {
     refreshProfile();
   }, [refreshProfile]);
 
-  const isPinSet = user?.isPinSet !== false;
+  // If user has not configured transaction PIN, redirect immediately to Set PIN
+  useEffect(() => {
+    if (user && user.isPinSet === false) {
+      toast.info('Please set your 4-digit transaction PIN before making transfers.');
+      navigate('/set-pin', { state: { from: '/transfer' } });
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError('');
   };
 
   const handleTransferSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+
+    if (user && user.isPinSet === false) {
+      toast.warning('Transaction PIN not configured. Redirecting to set PIN...');
+      navigate('/set-pin', { state: { from: '/transfer' } });
+      return;
+    }
 
     const numAmount = Number(formData.amount);
     if (!numAmount || numAmount <= 0) {
-      setError('Please enter a valid amount greater than zero.');
+      toast.error('Please enter a valid amount greater than zero.');
       return;
     }
 
     if (numAmount > (user?.balance || 0)) {
-      setError('Insufficient wallet balance.');
+      toast.error('Insufficient wallet balance.');
       return;
     }
 
     if (!formData.pin || formData.pin.length !== 4) {
-      setError('Please enter your 4-digit transaction PIN.');
+      toast.error('Please enter your 4-digit transaction PIN.');
       return;
     }
 
@@ -59,12 +69,11 @@ const Transfer = () => {
       setLoading(true);
       if (transferType === 'wallet') {
         if (!formData.recipientWallet) {
-          setError('Please enter the recipient wallet number.');
+          toast.error('Please enter the recipient wallet number.');
           setLoading(false);
           return;
         }
 
-        // TODO: confirm exact field names against live API docs
         const res = await transferWalletToWallet({
           fromWalletNumber: user?.walletNumber,
           toWalletNumber: formData.recipientWallet,
@@ -72,7 +81,8 @@ const Transfer = () => {
           pin: formData.pin,
         });
 
-        const ref = res?.data?.reference || 'TRF-' + Math.floor(Math.random() * 1000000);
+        const ref = res?.data?.reference || res?.reference || res?.transaction?.referenceId || res?.data?.transaction?.referenceId || 'SUCCESS';
+        toast.success(`Transfer of ₦${numAmount.toLocaleString()} completed!`);
         setTransferResult({
           status: 'SUCCESS',
           type: 'wallet',
@@ -83,12 +93,11 @@ const Transfer = () => {
         refreshProfile();
       } else {
         if (!formData.bankAccount || !formData.bankName) {
-          setError('Please enter bank account details.');
+          toast.error('Please enter bank account details.');
           setLoading(false);
           return;
         }
 
-        // TODO: confirm exact field names against live API docs
         const res = await withdrawToBank({
           amount: numAmount,
           bankAccount: formData.bankAccount,
@@ -96,7 +105,8 @@ const Transfer = () => {
           pin: formData.pin,
         });
 
-        const ref = res?.reference || 'WTH-' + Math.floor(Math.random() * 1000000);
+        const ref = res?.reference || res?.data?.reference || res?.transaction?.referenceId || 'PENDING';
+        toast.loading(`Processing bank withdrawal...`, { id: 'withdraw-poll' });
         setTransferResult({
           status: 'PENDING',
           type: 'bank',
@@ -105,10 +115,22 @@ const Transfer = () => {
           reference: ref,
         });
 
-        pollVerification(ref);
+        if (ref !== 'PENDING') {
+          pollVerification(ref);
+        } else {
+          toast.dismiss('withdraw-poll');
+          toast.success('Withdrawal request submitted successfully!');
+          refreshProfile();
+        }
       }
     } catch (err) {
-      setError(err.message || 'Transfer failed.');
+      const errMsg = err.message || '';
+      if (errMsg.toLowerCase().includes('not set your pin') || errMsg.toLowerCase().includes('pin is not set')) {
+        toast.warning('You have not set your PIN yet. Redirecting...');
+        navigate('/set-pin', { state: { from: '/transfer' } });
+      } else {
+        toast.error(errMsg || 'Transfer failed.');
+      }
     } finally {
       setLoading(false);
     }
@@ -117,16 +139,17 @@ const Transfer = () => {
   const pollVerification = async (reference) => {
     setPolling(true);
     let attempts = 0;
-    const maxAttempts = 5;
+    const maxAttempts = 10;
 
     const interval = setInterval(async () => {
       attempts++;
       try {
-        // TODO: confirm exact field names against live API docs
         const verifyRes = await verifyTransferStatus(reference, 'bank');
-        if (verifyRes && verifyRes.status === 'success') {
+        if (verifyRes && (verifyRes.status === 'success' || verifyRes.status === 'successful')) {
           clearInterval(interval);
           setPolling(false);
+          toast.dismiss('withdraw-poll');
+          toast.success('Withdrawal completed successfully!');
           setTransferResult((prev) => ({ ...prev, status: 'SUCCESS' }));
           refreshProfile();
         }
@@ -137,8 +160,9 @@ const Transfer = () => {
       if (attempts >= maxAttempts) {
         clearInterval(interval);
         setPolling(false);
+        toast.dismiss('withdraw-poll');
       }
-    }, 3000);
+    }, 4000);
   };
 
   const handleDone = () => {
@@ -155,18 +179,7 @@ const Transfer = () => {
       <Navbar />
 
       <main className="app-container">
-        {!isPinSet ? (
-          <div className="card" style={{ textAlign: 'center', padding: '32px 20px' }}>
-            <span className="badge-pill-pending" style={{ marginBottom: '12px' }}>Security Notice</span>
-            <h1 className="screen-title" style={{ marginBottom: '8px' }}>PIN Required</h1>
-            <p className="caption-text" style={{ marginBottom: '24px' }}>
-              You have not configured a 4-digit transaction PIN yet. Transfers are disabled until a PIN is set.
-            </p>
-            <button onClick={() => navigate('/set-pin')} className="btn btn-gradient">
-              Set Transaction PIN Now
-            </button>
-          </div>
-        ) : !transferResult ? (
+        {!transferResult ? (
           <form onSubmit={handleTransferSubmit} className="card">
             <h1 className="screen-title" style={{ marginBottom: '20px' }}>Transfer Funds</h1>
 
@@ -189,8 +202,6 @@ const Transfer = () => {
                 Bank Withdrawal
               </button>
             </div>
-
-            {error && <div className="alert-block alert-danger">{error}</div>}
 
             <div className="form-group">
               <span className="font-label">TRANSFER AMOUNT (NGN)</span>
@@ -233,11 +244,14 @@ const Transfer = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <option value="Access Bank">Access Bank</option>
-                    <option value="GTBank">Guaranty Trust Bank (GTB)</option>
-                    <option value="First Bank">First Bank of Nigeria</option>
+                    <option value="Guaranty Trust Bank">Guaranty Trust Bank (GTB)</option>
+                    <option value="First Bank of Nigeria">First Bank of Nigeria</option>
                     <option value="Zenith Bank">Zenith Bank</option>
+                    <option value="United Bank For Africa">United Bank For Africa (UBA)</option>
                     <option value="Kuda Bank">Kuda Microfinance Bank</option>
                     <option value="OPay">OPay Digital Services</option>
+                    <option value="Palmpay">Palmpay</option>
+                    <option value="Sterling Bank">Sterling Bank</option>
                   </select>
                 </div>
 
@@ -247,7 +261,7 @@ const Transfer = () => {
                     type="text"
                     name="bankAccount"
                     className="input-field"
-                    placeholder="10-digit Account Number"
+                    placeholder="10-digit NUBAN"
                     maxLength={10}
                     value={formData.bankAccount}
                     onChange={handleChange}
@@ -258,7 +272,7 @@ const Transfer = () => {
             )}
 
             <div className="form-group">
-              <span className="font-label">4-DIGIT SECURITY PIN</span>
+              <span className="font-label">4-DIGIT PIN</span>
               <input
                 type="password"
                 name="pin"
@@ -272,35 +286,13 @@ const Transfer = () => {
             </div>
 
             <button type="submit" className="btn btn-gradient" style={{ marginTop: '12px' }} disabled={loading}>
-              {loading ? 'Processing Transfer...' : 'Confirm Transfer'}
+              {loading ? 'Processing Transfer...' : 'Authorize Transfer'}
             </button>
           </form>
         ) : (
           <div className="card" style={{ textAlign: 'center', padding: '32px 20px' }}>
-            {transferResult.status === 'PENDING' ? (
+            {transferResult.status === 'SUCCESS' && (
               <>
-                <div style={{ marginBottom: '16px' }}>
-                  <span className="badge-pill-pending">Processing Withdrawal</span>
-                </div>
-
-                <h2 className="section-header" style={{ marginBottom: '8px' }}>Dispatched to Bank</h2>
-                <p className="body-lg" style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', textAlign: 'center' }}>
-                  −{formatAmount(transferResult.amount)}
-                </p>
-                <p className="caption-text" style={{ marginBottom: '20px' }}>
-                  Destination: {transferResult.recipient}
-                </p>
-                <span className="caption-text" style={{ display: 'block', marginBottom: '28px', fontVariantNumeric: 'tabular-nums' }}>
-                  Ref: {transferResult.reference}
-                </span>
-
-                <button onClick={handleDone} className="btn btn-primary">
-                  Return to Dashboard
-                </button>
-              </>
-            ) : transferResult.status === 'SUCCESS' ? (
-              <>
-                {/* Celebratory Blooming Gradient Checkmark Badge */}
                 <div
                   style={{
                     width: '64px',
@@ -310,7 +302,7 @@ const Transfer = () => {
                     color: 'var(--text-primary)',
                     display: 'flex',
                     alignItems: 'center',
-                    justify: 'center',
+                    justifyContent: 'center',
                     margin: '0 auto 16px auto',
                     boxShadow: '0 8px 28px rgba(240, 64, 154, 0.4)',
                     animation: 'modalPop 400ms var(--ease-spring)',
@@ -319,22 +311,42 @@ const Transfer = () => {
                   <CheckCircle size={36} strokeWidth={2} />
                 </div>
 
-                <h2 className="section-header" style={{ marginBottom: '8px' }}>Transfer Complete</h2>
+                <h2 className="section-header" style={{ marginBottom: '8px' }}>Transfer Successful</h2>
                 <p className="body-lg" style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', textAlign: 'center' }}>
-                  −{formatAmount(transferResult.amount)}
+                  {formatAmount(transferResult.amount)}
                 </p>
-                <p className="caption-text" style={{ marginBottom: '16px' }}>
-                  Sent to {transferResult.recipient}
+                <p className="caption-text" style={{ marginBottom: '24px' }}>
+                  Sent to <strong>{transferResult.recipient}</strong>
                 </p>
-                <span className="caption-text" style={{ display: 'block', marginBottom: '28px', fontVariantNumeric: 'tabular-nums' }}>
-                  Ref: {transferResult.reference}
-                </span>
 
                 <button onClick={handleDone} className="btn btn-gradient">
-                  Done
+                  Return to Dashboard
                 </button>
               </>
-            ) : (
+            )}
+
+            {transferResult.status === 'PENDING' && (
+              <>
+                <div style={{ marginBottom: '16px' }}>
+                  <span className="badge-pill-pending">Processing Withdrawal</span>
+                </div>
+
+                <h2 className="section-header" style={{ marginBottom: '8px' }}>Transfer Queued</h2>
+                <p className="caption-text" style={{ marginBottom: '20px' }}>
+                  Your bank withdrawal is currently being processed by the gateway.
+                </p>
+
+                <button
+                  onClick={() => pollVerification(transferResult.reference)}
+                  className="btn btn-primary"
+                  disabled={polling}
+                >
+                  {polling ? 'Verifying...' : 'Check Transfer Status'}
+                </button>
+              </>
+            )}
+
+            {transferResult.status === 'FAILED' && (
               <>
                 <div style={{ marginBottom: '16px' }}>
                   <span className="badge-pill-failed">Transfer Failed</span>
@@ -342,7 +354,7 @@ const Transfer = () => {
 
                 <h2 className="section-header" style={{ marginBottom: '8px' }}>Transfer Failed</h2>
                 <p className="caption-text" style={{ marginBottom: '24px' }}>
-                  Unable to complete transaction. Your wallet balance has not been debited.
+                  The transfer could not be completed.
                 </p>
 
                 <button onClick={() => setTransferResult(null)} className="btn btn-primary">

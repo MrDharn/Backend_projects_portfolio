@@ -15,23 +15,11 @@ const Transactions = () => {
     try {
       setLoading(true);
       const res = await getTransactionHistory();
-      if (res && (res.transactions || res.data) && (res.transactions || res.data).length > 0) {
-        setTransactions(res.transactions || res.data);
-      } else {
-        setTransactions([
-          { _id: 'tx_1', type_of_transaction: 'DEPOSIT', amount: 50000, status: 'SUCCESS', referenceId: 'DEP-849201', createdAt: new Date().toISOString() },
-          { _id: 'tx_2', type_of_transaction: 'TRANSFER', amount: 12500, status: 'SUCCESS', receiverWallet: '8091234567', referenceId: 'TRF-102938', createdAt: new Date(Date.now() - 86400000).toISOString() },
-          { _id: 'tx_3', type_of_transaction: 'WITHDRAWAL', amount: 20000, status: 'SUCCESS', referenceId: 'WTH-582910', createdAt: new Date(Date.now() - 172800000).toISOString() },
-          { _id: 'tx_4', type_of_transaction: 'TRANSFER', amount: 5000, status: 'PENDING', receiverWallet: '7019823456', referenceId: 'TRF-771920', createdAt: new Date(Date.now() - 259200000).toISOString() },
-        ]);
-      }
+      const list = res?.transactions || res?.data || (Array.isArray(res) ? res : []);
+      setTransactions(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error('Failed to load transaction history:', err);
-      setTransactions([
-        { _id: 'tx_1', type_of_transaction: 'DEPOSIT', amount: 50000, status: 'SUCCESS', referenceId: 'DEP-849201', createdAt: new Date().toISOString() },
-        { _id: 'tx_2', type_of_transaction: 'TRANSFER', amount: 12500, status: 'SUCCESS', receiverWallet: '8091234567', referenceId: 'TRF-102938', createdAt: new Date(Date.now() - 86400000).toISOString() },
-        { _id: 'tx_3', type_of_transaction: 'WITHDRAWAL', amount: 20000, status: 'SUCCESS', referenceId: 'WTH-582910', createdAt: new Date(Date.now() - 172800000).toISOString() },
-      ]);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
@@ -64,12 +52,12 @@ const Transactions = () => {
   const getCategoryMeta = (type) => {
     const t = (type || '').toUpperCase();
     if (t === 'DEPOSIT') {
-      return { color: 'var(--cyan)', bg: 'rgba(61, 220, 255, 0.15)', icon: <ArrowDownLeft size={20} strokeWidth={2} color="var(--cyan)" /> };
+      return { color: 'var(--cyan)', bg: 'rgba(61, 220, 255, 0.15)', icon: <ArrowDownLeft size={20} strokeWidth={2} color="var(--cyan)" />, label: 'Deposit' };
     }
     if (t === 'TRANSFER') {
-      return { color: 'var(--violet)', bg: 'rgba(139, 92, 246, 0.15)', icon: <ArrowUpRight size={20} strokeWidth={2} color="var(--violet)" /> };
+      return { color: 'var(--violet)', bg: 'rgba(139, 92, 246, 0.15)', icon: <ArrowUpRight size={20} strokeWidth={2} color="var(--violet)" />, label: 'Transfer' };
     }
-    return { color: 'var(--coral)', bg: 'rgba(255, 92, 108, 0.15)', icon: <ArrowUpRight size={20} strokeWidth={2} color="var(--coral)" /> };
+    return { color: 'var(--coral)', bg: 'rgba(255, 92, 108, 0.15)', icon: <ArrowUpRight size={20} strokeWidth={2} color="var(--coral)" />, label: 'Withdrawal' };
   };
 
   const renderStatusBadge = (status) => {
@@ -88,49 +76,59 @@ const Transactions = () => {
       <Navbar />
 
       <main className="app-container">
-        <h1 className="screen-title" style={{ marginBottom: '16px' }}>Transactions</h1>
+        <h1 className="screen-title" style={{ marginBottom: '16px' }}>Transaction History</h1>
 
-        {/* Search */}
-        <div style={{ position: 'relative', marginBottom: '16px' }}>
-          <Search size={16} strokeWidth={2} color="var(--text-secondary)" style={{ position: 'absolute', left: '16px', top: '18px' }} />
+        {/* Filter Segmented Control Bar */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
+          {['ALL', 'DEPOSIT', 'TRANSFER', 'WITHDRAWAL'].map((category) => (
+            <button
+              key={category}
+              className={`btn ${filter === category ? 'btn-primary' : 'btn-secondary'}`}
+              style={{
+                height: '36px',
+                fontSize: '12px',
+                borderRadius: '9999px',
+                padding: '0 14px',
+                textTransform: 'capitalize',
+                whiteSpace: 'nowrap',
+              }}
+              onClick={() => setFilter(category)}
+            >
+              {category === 'ALL' ? 'All Activity' : category.toLowerCase() + 's'}
+            </button>
+          ))}
+        </div>
+
+        {/* Search Input Bar */}
+        <div style={{ position: 'relative', marginBottom: '20px' }}>
+          <Search size={16} strokeWidth={2} color="var(--text-secondary)" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
             className="input-field"
             style={{ paddingLeft: '44px' }}
-            placeholder="Search reference or wallet..."
+            placeholder="Search by reference or wallet..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        {/* Filter Tabs */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
-          {['ALL', 'DEPOSIT', 'TRANSFER', 'WITHDRAWAL'].map((t) => (
-            <button
-              key={t}
-              className={`btn ${filter === t ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ width: 'auto', height: '38px', fontSize: '13px', borderRadius: '9999px', padding: '0 16px' }}
-              onClick={() => setFilter(t)}
-            >
-              {t === 'ALL' ? 'All' : t.charAt(0) + t.slice(1).toLowerCase()}
-            </button>
-          ))}
-        </div>
-
-        {/* Category-Coded Transaction List */}
+        {/* Transaction Items */}
         <div className="transaction-card-container">
           {loading ? (
             <p className="caption-text" style={{ padding: '24px 0', textAlign: 'center' }}>
-              Loading transaction history...
+              Loading transactions...
             </p>
           ) : filteredTransactions.length === 0 ? (
-            <div style={{ padding: '36px 0', textAlign: 'center' }}>
-              <p className="caption-text">No matching transactions found.</p>
+            <div style={{ padding: '40px 0', textAlign: 'center' }}>
+              <p className="body-lg" style={{ marginBottom: '6px', color: 'var(--text-secondary)' }}>No transactions found</p>
+              <p className="caption-text">
+                {searchTerm || filter !== 'ALL' ? 'Try adjusting your filters or search term.' : 'Your transaction history will appear here.'}
+              </p>
             </div>
           ) : (
             filteredTransactions.map((tx, idx) => {
-              const type = (tx.type_of_transaction || tx.type || '').toUpperCase();
-              const isDeposit = type === 'DEPOSIT';
+              const type = tx.type_of_transaction || tx.type || '';
+              const isDeposit = type.toUpperCase() === 'DEPOSIT';
               const meta = getCategoryMeta(type);
 
               return (
@@ -138,6 +136,7 @@ const Transactions = () => {
                   key={tx._id || tx.id || idx}
                   className="transaction-row-aurora"
                   onClick={() => setSelectedTx(tx)}
+                  style={{ cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div className="category-icon-tile" style={{ backgroundColor: meta.bg }}>
@@ -148,13 +147,13 @@ const Transactions = () => {
                       <p className="body-lg" style={{ fontSize: '15px' }}>
                         {isDeposit
                           ? 'Wallet Deposit'
-                          : type === 'TRANSFER'
-                          ? 'Wallet Transfer'
+                          : tx.receiverWallet
+                          ? `Transfer to ${tx.receiverWallet}`
                           : 'Bank Withdrawal'}
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
                         <span className="caption-text">
-                          {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : 'N/A'}
+                          {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : 'Recent'}
                         </span>
                         <span>•</span>
                         {renderStatusBadge(tx.status)}
@@ -173,55 +172,76 @@ const Transactions = () => {
           )}
         </div>
 
-        {/* Detail Modal Window */}
+        {/* Transaction Detail Modal */}
         {selectedTx && (
-          <div className="modal-overlay" onClick={() => setSelectedTx(null)}>
-            <div className="modal-content-aurora" onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 className="section-header">Transaction Detail</h3>
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(5, 5, 8, 0.75)',
+              backdropFilter: 'blur(12px)',
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px',
+            }}
+            onClick={() => setSelectedTx(null)}
+          >
+            <div
+              className="card"
+              style={{ width: '100%', maxWidth: '420px', padding: '24px', animation: 'modalPop 300ms var(--ease-spring)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 className="section-header">Transaction Details</h3>
                 <button
                   onClick={() => setSelectedTx(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
                 >
                   <X size={20} strokeWidth={2} />
                 </button>
               </div>
 
-              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <p className="body-lg" style={{ fontSize: '32px', fontWeight: 700, marginBottom: '8px' }}>
-                  {formatAmount(selectedTx.amount)}
-                </p>
-                {renderStatusBadge(selectedTx.status)}
-              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                  <span className="caption-text">Amount</span>
+                  <span className="body-lg" style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                    {formatAmount(selectedTx.amount)}
+                  </span>
+                </div>
 
-              <div style={{ fontSize: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
                   <span className="caption-text">Type</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedTx.type_of_transaction || selectedTx.type}</span>
+                  <span className="body-text" style={{ textTransform: 'capitalize' }}>
+                    {(selectedTx.type_of_transaction || selectedTx.type || 'Transaction').toLowerCase()}
+                  </span>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span className="caption-text">Reference ID</span>
-                  <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{selectedTx.referenceId || selectedTx.reference || 'N/A'}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                  <span className="caption-text">Status</span>
+                  <span>{renderStatusBadge(selectedTx.status)}</span>
                 </div>
 
-                {selectedTx.receiverWallet && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-                    <span className="caption-text">Recipient Wallet</span>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedTx.receiverWallet}</span>
-                  </div>
-                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                  <span className="caption-text">Reference</span>
+                  <span className="body-text" style={{ fontVariantNumeric: 'tabular-nums', fontSize: '12px', wordBreak: 'break-all' }}>
+                    {selectedTx.referenceId || selectedTx.reference || 'N/A'}
+                  </span>
+                </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span className="caption-text">Date & Time</span>
-                  <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{selectedTx.createdAt ? new Date(selectedTx.createdAt).toLocaleString() : 'N/A'}</span>
+                  <span className="body-text">
+                    {selectedTx.createdAt ? new Date(selectedTx.createdAt).toLocaleString() : 'N/A'}
+                  </span>
                 </div>
               </div>
 
               <button
                 onClick={() => setSelectedTx(null)}
                 className="btn btn-secondary"
-                style={{ marginTop: '24px' }}
+                style={{ marginTop: '20px' }}
               >
                 Close
               </button>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { registerUser } from '../services/apiClient';
 
 const Register = () => {
@@ -13,36 +14,31 @@ const Register = () => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
     if (!formData.name || !formData.email || !formData.phone || !formData.password || !formData.confirmPassword) {
-      setError('Please fill in all required fields.');
+      toast.error('Please fill in all required fields.');
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
+      toast.error('Passwords do not match.');
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      toast.error('Password must be at least 6 characters long.');
       return;
     }
 
     try {
       setLoading(true);
-      // TODO: confirm exact field names against live API docs
       await registerUser({
         name: formData.name,
         email: formData.email,
@@ -50,12 +46,12 @@ const Register = () => {
         password: formData.password,
       });
 
-      setSuccess(true);
+      toast.success('Account created successfully! Redirecting to login...');
       setTimeout(() => {
         navigate('/login', { state: { message: 'Registration successful! Please sign in.' } });
       }, 1500);
     } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
+      toast.error(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -68,9 +64,6 @@ const Register = () => {
         <p className="caption-text">Initialize your digital wallet</p>
       </div>
 
-      {error && <div className="alert-block alert-danger">{error}</div>}
-      {success && <div className="alert-block alert-success">Account created successfully! Redirecting...</div>}
-
       <form onSubmit={handleSubmit} className="card">
         <div className="form-group">
           <span className="font-label">FULL NAME</span>
@@ -79,7 +72,7 @@ const Register = () => {
             id="name"
             name="name"
             className="input-field"
-            placeholder="Alex Johnson"
+            placeholder="e.g. John Doe"
             value={formData.name}
             onChange={handleChange}
             required
@@ -93,7 +86,7 @@ const Register = () => {
             id="email"
             name="email"
             className="input-field"
-            placeholder="alex@example.com"
+            placeholder="e.g. john@example.com"
             value={formData.email}
             onChange={handleChange}
             required
@@ -107,7 +100,7 @@ const Register = () => {
             id="phone"
             name="phone"
             className="input-field"
-            placeholder="08012345678"
+            placeholder="e.g. 08012345678"
             value={formData.phone}
             onChange={handleChange}
             required
@@ -142,7 +135,7 @@ const Register = () => {
           />
         </div>
 
-        <button type="submit" className="btn btn-gradient" style={{ marginTop: '8px' }} disabled={loading || success}>
+        <button type="submit" className="btn btn-gradient" style={{ marginTop: '8px' }} disabled={loading}>
           {loading ? 'Creating Account...' : 'Register Account'}
         </button>
       </form>

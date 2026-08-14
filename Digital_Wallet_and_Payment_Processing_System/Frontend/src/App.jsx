@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 
 // Public pages
 import Login from './pages/Login';
@@ -20,7 +21,18 @@ import ProtectedRoute from './routes/ProtectedRoute';
 
 const App = () => {
   return (
-    <Routes>
+    <>
+      <Toaster
+        position="top-center"
+        richColors
+        closeButton
+        toastOptions={{
+          classNames: {
+            success: 'toast-success-custom',
+          },
+        }}
+      />
+      <Routes>
       {/* Root redirect */}
       <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -104,6 +116,7 @@ const App = () => {
       {/* Fallback route */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    </>
   );
 };
 

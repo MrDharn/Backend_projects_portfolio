@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { AuthContext } from '../context/AuthContext';
 import { depositFunds, verifyDepositStatus } from '../services/apiClient';
 import Navbar from '../components/Navbar';
@@ -14,25 +15,23 @@ const Deposit = () => {
   const [method, setMethod] = useState('paystack');
   const [loading, setLoading] = useState(false);
   const [polling, setPolling] = useState(false);
-  const [error, setError] = useState('');
   const [depositResult, setDepositResult] = useState(null);
 
   const handleDepositSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
     const numAmount = Number(amount);
     if (!numAmount || numAmount <= 0) {
-      setError('Please enter a valid deposit amount greater than zero.');
+      toast.error('Please enter a valid deposit amount greater than zero.');
       return;
     }
 
     try {
       setLoading(true);
-      // TODO: confirm exact field names against live API docs
       const res = await depositFunds({ amount: numAmount, method });
 
       if (res && res.authorizationUrl) {
+        toast.info('Opening Paystack checkout window...');
         window.open(res.authorizationUrl, '_blank');
       }
 
@@ -44,17 +43,13 @@ const Deposit = () => {
           amount: numAmount,
           authorizationUrl: res.authorizationUrl,
         });
-
+        toast.loading(`Waiting for payment confirmation (${reference})...`, { id: 'deposit-poll' });
         pollVerification(reference);
       } else {
-        setDepositResult({
-          status: 'SUCCESS',
-          reference: 'DEP-' + Math.floor(Math.random() * 1000000),
-          amount: numAmount,
-        });
+        toast.error('Payment reference was not returned by the server.');
       }
     } catch (err) {
-      setError(err.message || 'Failed to initialize deposit.');
+      toast.error(err.message || 'Failed to initialize deposit.');
     } finally {
       setLoading(false);
     }
@@ -63,16 +58,17 @@ const Deposit = () => {
   const pollVerification = async (reference) => {
     setPolling(true);
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 15;
 
     const interval = setInterval(async () => {
       attempts++;
       try {
-        // TODO: confirm exact field names against live API docs
         const verifyRes = await verifyDepositStatus(reference);
-        if (verifyRes && verifyRes.status === 'success') {
+        if (verifyRes && (verifyRes.status === 'success' || verifyRes.status === 'successful')) {
           clearInterval(interval);
           setPolling(false);
+          toast.dismiss('deposit-poll');
+          toast.success('Payment verified successfully! Wallet credited.');
           setDepositResult((prev) => ({ ...prev, status: 'SUCCESS' }));
           refreshProfile();
         }
@@ -83,6 +79,7 @@ const Deposit = () => {
       if (attempts >= maxAttempts) {
         clearInterval(interval);
         setPolling(false);
+        toast.dismiss('deposit-poll');
       }
     }, 4000);
   };
@@ -104,8 +101,6 @@ const Deposit = () => {
         {!depositResult ? (
           <form onSubmit={handleDepositSubmit} className="card">
             <h1 className="screen-title" style={{ marginBottom: '20px' }}>Deposit Funds</h1>
-
-            {error && <div className="alert-block alert-danger">{error}</div>}
 
             <div className="form-group">
               <span className="font-label">DEPOSIT AMOUNT (NGN)</span>
@@ -133,8 +128,7 @@ const Deposit = () => {
                 onChange={(e) => setMethod(e.target.value)}
                 style={{ cursor: 'pointer' }}
               >
-                <option value="paystack">Paystack Checkout / Debit Card</option>
-                <option value="bank_transfer">Bank Transfer / USSD</option>
+                <option value="paystack">Paystack Checkout (Card / Bank Transfer / USSD)</option>
               </select>
             </div>
 
@@ -179,7 +173,6 @@ const Deposit = () => {
 
             {depositResult.status === 'SUCCESS' && (
               <>
-                {/* Celebratory Blooming Gradient Checkmark Badge */}
                 <div
                   style={{
                     width: '64px',
@@ -189,7 +182,7 @@ const Deposit = () => {
                     color: 'var(--text-primary)',
                     display: 'flex',
                     alignItems: 'center',
-                    justify: 'center',
+                    justifyContent: 'center',
                     margin: '0 auto 16px auto',
                     boxShadow: '0 8px 28px rgba(240, 64, 154, 0.4)',
                     animation: 'modalPop 400ms var(--ease-spring)',

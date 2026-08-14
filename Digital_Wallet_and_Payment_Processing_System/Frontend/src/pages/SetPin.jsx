@@ -1,83 +1,142 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useContext, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
 import { AuthContext } from '../context/AuthContext';
 import { setTransactionPin } from '../services/apiClient';
 import Navbar from '../components/Navbar';
 import BottomNav from '../components/BottomNav';
+import { ShieldCheck } from 'lucide-react';
 
-const AuroraPinInput = ({ label, value, onChange }) => {
-  const isComplete = value.length === 4;
+const PinBoxInput = ({ label, value = '', onChange, idPrefix = 'pin' }) => {
+  const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+  const digits = value.split('').slice(0, 4);
+
+  const handleDigitChange = (index, e) => {
+    const rawVal = e.target.value;
+    const cleanDigit = rawVal.replace(/\D/g, '');
+
+    if (!cleanDigit) {
+      const newDigits = [digits[0] || '', digits[1] || '', digits[2] || '', digits[3] || ''];
+      newDigits[index] = '';
+      onChange(newDigits.join(''));
+      return;
+    }
+
+    if (cleanDigit.length > 1) {
+      const pastedChars = cleanDigit.slice(0, 4);
+      onChange(pastedChars);
+      const nextFocus = Math.min(pastedChars.length, 3);
+      inputRefs[nextFocus]?.current?.focus();
+      return;
+    }
+
+    const newDigits = [digits[0] || '', digits[1] || '', digits[2] || '', digits[3] || ''];
+    newDigits[index] = cleanDigit.slice(-1);
+    const updated = newDigits.join('').slice(0, 4);
+    onChange(updated);
+
+    if (index < 3 && cleanDigit) {
+      inputRefs[index + 1]?.current?.focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace') {
+      if (!digits[index] && index > 0) {
+        inputRefs[index - 1]?.current?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs[index - 1]?.current?.focus();
+    } else if (e.key === 'ArrowRight' && index < 3) {
+      inputRefs[index + 1]?.current?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+    if (pasted) {
+      onChange(pasted);
+      const nextFocus = Math.min(pasted.length - 1, 3);
+      inputRefs[nextFocus]?.current?.focus();
+    }
+  };
 
   return (
-    <div className="form-group">
-      <span className="font-label" style={{ textAlign: 'center', marginBottom: '12px' }}>{label}</span>
-      <div className="pin-tile-container">
+    <div className="form-group" style={{ marginBottom: '24px' }}>
+      {label && (
+        <span className="font-label" style={{ textAlign: 'center', marginBottom: '14px', display: 'block' }}>
+          {label}
+        </span>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
         {[0, 1, 2, 3].map((idx) => {
-          const char = value[idx];
+          const val = digits[idx] || '';
           return (
-            <div
+            <input
               key={idx}
-              className={`pin-tile ${char ? 'filled' : ''} ${isComplete ? 'flash' : ''}`}
-            >
-              {char ? '•' : ''}
-            </div>
+              ref={inputRefs[idx]}
+              id={`${idPrefix}-${idx}`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={1}
+              value={val}
+              onChange={(e) => handleDigitChange(idx, e)}
+              onKeyDown={(e) => handleKeyDown(idx, e)}
+              onPaste={handlePaste}
+              onFocus={(e) => e.target.select()}
+              className="pin-box-input"
+              autoComplete="off"
+            />
           );
         })}
       </div>
-      <input
-        type="password"
-        className="input-field"
-        placeholder="Enter 4 numeric digits"
-        maxLength={4}
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, ''))}
-      />
     </div>
   );
 };
 
 const SetPin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { refreshProfile } = useContext(AuthContext);
 
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
     if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      setError('PIN must be exactly 4 numeric digits.');
+      toast.error('Please enter a 4-digit PIN.');
       return;
     }
 
     if (pin !== confirmPin) {
-      setError('PIN confirmation does not match.');
+      toast.error('PIN confirmation does not match.');
       return;
     }
 
     try {
       setLoading(true);
-      // TODO: confirm exact field names against live API docs
       await setTransactionPin({ pin });
 
-      setSuccess(true);
+      toast.success('Transaction PIN configured successfully!');
       await refreshProfile();
+      
+      const destination = location.state?.from || '/profile';
       setTimeout(() => {
-        navigate('/profile');
-      }, 1500);
+        navigate(destination);
+      }, 1000);
     } catch (err) {
       if (err?.status === 409 || err?.message?.toLowerCase().includes('already set')) {
-        setError('Transaction PIN is already configured. Redirecting to Change PIN...');
+        toast.warning('Transaction PIN is already configured. Redirecting to Change PIN...');
         setTimeout(() => {
           navigate('/change-pin');
-        }, 2000);
+        }, 1500);
       } else {
-        setError(err.message || 'Failed to set PIN.');
+        toast.error(err.message || 'Failed to set PIN.');
       }
     } finally {
       setLoading(false);
@@ -90,35 +149,45 @@ const SetPin = () => {
 
       <main className="app-container">
         <div className="card">
-          <h1 className="screen-title" style={{ marginBottom: '8px' }}>Set Transaction PIN</h1>
-          <p className="caption-text" style={{ marginBottom: '24px' }}>
-            Create a 4-digit security PIN for authorizing wallet transactions.
-          </p>
-
-          {error && <div className="alert-block alert-danger">{error}</div>}
-          {success && <div className="alert-block alert-success">Transaction PIN configured! Redirecting...</div>}
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(139, 92, 246, 0.15)',
+                color: 'var(--violet)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 12px auto',
+              }}
+            >
+              <ShieldCheck size={26} strokeWidth={2} />
+            </div>
+            <h1 className="screen-title" style={{ marginBottom: '6px' }}>Set Transaction PIN</h1>
+            <p className="caption-text">
+              Enter a 4-digit security PIN to authorize transactions.
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit}>
-            <AuroraPinInput
+            <PinBoxInput
               label="ENTER 4-DIGIT PIN"
               value={pin}
-              onChange={(val) => {
-                setPin(val);
-                setError('');
-              }}
+              onChange={(val) => setPin(val)}
+              idPrefix="set-pin"
             />
 
-            <AuroraPinInput
+            <PinBoxInput
               label="CONFIRM 4-DIGIT PIN"
               value={confirmPin}
-              onChange={(val) => {
-                setConfirmPin(val);
-                setError('');
-              }}
+              onChange={(val) => setConfirmPin(val)}
+              idPrefix="confirm-pin"
             />
 
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '12px' }} disabled={loading || success}>
-              {loading ? 'Setting PIN...' : 'Save Transaction PIN'}
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }} disabled={loading}>
+              {loading ? 'Saving PIN...' : 'Save & Continue'}
             </button>
           </form>
         </div>

@@ -36,6 +36,15 @@
   padding: 0;
   box-sizing: border-box;
   box-shadow: none !important; /* REMOVE ALL SHADOWS TO PREVENT OVERFLOW */
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+}
+
+/* HIDE ALL SCROLLBARS GLOBALLY */
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 body {
@@ -187,13 +196,21 @@ h2, .section-header {
   border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-/* Quick Actions Scrollable Pill Row */
+/* Quick Actions Scrollable Pill Row (Scrollbars hidden) */
 .quick-actions-row {
   display: flex;
   gap: 12px;
   overflow-x: auto;
   padding-bottom: 4px;
   margin-bottom: 24px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.quick-actions-row::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .quick-action-pill {
@@ -551,3 +568,59 @@ h2, .section-header {
   color: var(--lime);
   border: 1px solid rgba(185, 245, 66, 0.3);
 }
+
+/* Sonner Success Toast Custom Green Styling */
+[data-sonner-toast][data-type="success"],
+.toast-success-custom {
+  background: #059669 !important;
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border: 1px solid #10b981 !important;
+  box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.4) !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-title],
+[data-sonner-toast][data-type="success"] [data-description],
+[data-sonner-toast][data-type="success"] [data-icon],
+[data-sonner-toast][data-type="success"] svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-close-button] {
+  background: rgba(0, 0, 0, 0.25) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 4-Box Interactive PIN Inputs */
+.pin-box-input {
+  width: 58px;
+  height: 64px;
+  background-color: var(--surface-1);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-text-security: disc;
+}
+
+.pin-box-input:focus {
+  border-color: var(--violet);
+  background-color: var(--surface-2);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+  .pin-box-input {
+    width: 50px;
+    height: 58px;
+    font-size: 20px;
+  }
+}
+
+

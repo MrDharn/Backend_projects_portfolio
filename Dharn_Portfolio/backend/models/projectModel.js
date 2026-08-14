@@ -26,10 +26,12 @@ const projectSchema = new mongoose.Schema(
     github: {
       type: String,
       trim: true,
+      default: "",
     },
     demo: {
       type: String,
       trim: true,
+      default: "",
     },
     featured: {
       type: Boolean,
@@ -39,12 +41,6 @@ const projectSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
-    // Adding a download URL to your existing Project model
-    resumeUrl: {
-      type: String,
-      trim: true,
-    },
-
     downloadCount: {
       type: Number,
       default: 0,
@@ -52,7 +48,7 @@ const projectSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 module.exports = mongoose.model("Project", projectSchema);

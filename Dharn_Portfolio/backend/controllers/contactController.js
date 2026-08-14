@@ -15,7 +15,7 @@ const createContact = async(req, res)=>{
         })
     }catch(e){
         res.status(500).json({
-            status: false,
+            status: "failed",
             message: "Server Error"
         })
     }

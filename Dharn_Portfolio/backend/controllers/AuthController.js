@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken")
 const adminLogin = async(req, res)=>{
     const {email, password}= req.body
     if(!email || !password) return res.status(400).json({
-        status: false,
+        status: "failed",
         message: "Invalid inputs"
     })
 
@@ -12,13 +12,13 @@ const adminLogin = async(req, res)=>{
     };
 
     return res.status(200).json({
-        status: true,
+        status: "success",
         message: "Logged In Successfully",
         token
 })
 
     return res.status(401).json({
-        status: false,
+        status: "failed",
         message: "Invalid Admin Credentials"
     });
 

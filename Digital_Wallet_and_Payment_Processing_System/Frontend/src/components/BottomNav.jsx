@@ -4,54 +4,44 @@ import { Home, ArrowDownLeft, ArrowUpRight, History, User } from 'lucide-react';
 
 const BottomNav = () => {
   return (
-    <nav className="floating-bottom-nav">
+    <nav className="bottom-nav">
       <NavLink
         to="/dashboard"
-        className={({ isActive }) => (isActive ? 'nav-item-aurora active' : 'nav-item-aurora')}
+        className={({ isActive }) => (isActive ? 'active' : '')}
       >
-        <div className="nav-icon-bg">
-          <Home size={18} strokeWidth={2} />
-        </div>
+        <Home size={19} strokeWidth={2.2} />
         <span>Home</span>
       </NavLink>
 
       <NavLink
         to="/deposit"
-        className={({ isActive }) => (isActive ? 'nav-item-aurora active' : 'nav-item-aurora')}
+        className={({ isActive }) => (isActive ? 'active' : '')}
       >
-        <div className="nav-icon-bg">
-          <ArrowDownLeft size={18} strokeWidth={2} />
-        </div>
+        <ArrowDownLeft size={19} strokeWidth={2.2} />
         <span>Deposit</span>
       </NavLink>
 
       <NavLink
         to="/transfer"
-        className={({ isActive }) => (isActive ? 'nav-item-aurora active' : 'nav-item-aurora')}
+        className={({ isActive }) => (isActive ? 'active' : '')}
       >
-        <div className="nav-icon-bg">
-          <ArrowUpRight size={18} strokeWidth={2} />
-        </div>
+        <ArrowUpRight size={19} strokeWidth={2.2} />
         <span>Transfer</span>
       </NavLink>
 
       <NavLink
         to="/transactions"
-        className={({ isActive }) => (isActive ? 'nav-item-aurora active' : 'nav-item-aurora')}
+        className={({ isActive }) => (isActive ? 'active' : '')}
       >
-        <div className="nav-icon-bg">
-          <History size={18} strokeWidth={2} />
-        </div>
+        <History size={19} strokeWidth={2.2} />
         <span>Ledger</span>
       </NavLink>
 
       <NavLink
         to="/profile"
-        className={({ isActive }) => (isActive ? 'nav-item-aurora active' : 'nav-item-aurora')}
+        className={({ isActive }) => (isActive ? 'active' : '')}
       >
-        <div className="nav-icon-bg">
-          <User size={18} strokeWidth={2} />
-        </div>
+        <User size={19} strokeWidth={2.2} />
         <span>Profile</span>
       </NavLink>
     </nav>

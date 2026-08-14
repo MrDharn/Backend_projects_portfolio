@@ -201,9 +201,24 @@ const ChangePin = () => {
               idPrefix="confirm-new-pin"
             />
 
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }} disabled={loading}>
-              {loading ? 'Updating PIN...' : 'Update Transaction PIN'}
-            </button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ flex: 1.5 }}
+                disabled={loading}
+              >
+                {loading ? 'Updating PIN...' : 'Update PIN'}
+              </button>
+            </div>
           </form>
         </div>
       </main>

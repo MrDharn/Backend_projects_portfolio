@@ -5,7 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 import { depositFunds, verifyDepositStatus } from '../services/apiClient';
 import Navbar from '../components/Navbar';
 import BottomNav from '../components/BottomNav';
-import { ExternalLink, CheckCircle } from 'lucide-react';
+import { ExternalLink, CheckCircle, ShieldCheck, CreditCard, Copy, ArrowDownLeft } from 'lucide-react';
 
 const Deposit = () => {
   const navigate = useNavigate();
@@ -17,12 +17,16 @@ const Deposit = () => {
   const [polling, setPolling] = useState(false);
   const [depositResult, setDepositResult] = useState(null);
 
+  const handleChipSelect = (presetVal) => {
+    setAmount(String(presetVal));
+  };
+
   const handleDepositSubmit = async (e) => {
     e.preventDefault();
 
     const numAmount = Number(amount);
-    if (!numAmount || numAmount <= 0) {
-      toast.error('Please enter a valid deposit amount greater than zero.');
+    if (!numAmount || numAmount < 100) {
+      toast.error('Minimum deposit amount is ₦100.');
       return;
     }
 
@@ -31,7 +35,7 @@ const Deposit = () => {
       const res = await depositFunds({ amount: numAmount, method });
 
       if (res && res.authorizationUrl) {
-        toast.info('Opening Paystack checkout window...');
+        toast.info('Opening secure Paystack checkout...');
         window.open(res.authorizationUrl, '_blank');
       }
 
@@ -68,7 +72,7 @@ const Deposit = () => {
           clearInterval(interval);
           setPolling(false);
           toast.dismiss('deposit-poll');
-          toast.success('Payment verified successfully! Wallet credited.');
+          toast.success('Payment verified! Wallet credited successfully.');
           setDepositResult((prev) => ({ ...prev, status: 'SUCCESS' }));
           refreshProfile();
         }
@@ -84,11 +88,6 @@ const Deposit = () => {
     }, 4000);
   };
 
-  const handleDone = () => {
-    refreshProfile();
-    navigate('/dashboard');
-  };
-
   const formatAmount = (num) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(num || 0);
   };
@@ -100,10 +99,13 @@ const Deposit = () => {
       <main className="app-container">
         {!depositResult ? (
           <form onSubmit={handleDepositSubmit} className="card">
-            <h1 className="screen-title" style={{ marginBottom: '20px' }}>Deposit Funds</h1>
+            <h1 className="screen-title" style={{ marginBottom: '6px' }}>Top Up Wallet</h1>
+            <p className="caption-text" style={{ marginBottom: '22px' }}>
+              Instant funding via Debit Card, Bank Transfer, or USSD with Paystack.
+            </p>
 
             <div className="form-group">
-              <span className="font-label">DEPOSIT AMOUNT (NGN)</span>
+              <span className="font-label">TOP-UP AMOUNT (NGN)</span>
               <input
                 type="number"
                 id="amount"
@@ -114,39 +116,67 @@ const Deposit = () => {
                 min="100"
                 required
               />
-              <span className="caption-text" style={{ marginTop: '6px', display: 'block' }}>
-                Minimum deposit: ₦100
-              </span>
+
+              {/* Instant Quick-Fund Chips */}
+              <div className="amount-chip-grid">
+                {[1000, 2500, 5000, 10000, 25000, 50000].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    className={`amount-chip ${Number(amount) === preset ? 'active' : ''}`}
+                    onClick={() => handleChipSelect(preset)}
+                  >
+                    ₦{preset.toLocaleString()}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="form-group">
-              <span className="font-label">PAYMENT CHANNEL</span>
-              <select
-                id="method"
-                className="input-field"
-                value={method}
-                onChange={(e) => setMethod(e.target.value)}
-                style={{ cursor: 'pointer' }}
+              <span className="font-label">PAYMENT GATEWAY</span>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  background: 'var(--surface-2)',
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-input)',
+                  border: '1px solid var(--border)',
+                }}
               >
-                <option value="paystack">Paystack Checkout (Card / Bank Transfer / USSD)</option>
-              </select>
+                <CreditCard size={20} color="var(--cyan)" />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '14px', fontWeight: 600 }}>Paystack Secure Checkout</p>
+                  <span className="caption-text" style={{ fontSize: '11px' }}>Cards, Bank Transfer, USSD</span>
+                </div>
+                <span className="badge-pill-success" style={{ fontSize: '10px' }}>Zero Fee</span>
+              </div>
             </div>
 
-            <button type="submit" className="btn btn-gradient" style={{ marginTop: '12px' }} disabled={loading}>
-              {loading ? 'Initializing Deposit...' : 'Proceed to Payment'}
+            {/* PCI-DSS Security Guarantee Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: 'rgba(0, 210, 255, 0.08)', borderRadius: 'var(--radius-tile)', border: '1px solid rgba(0, 210, 255, 0.2)', marginBottom: '22px' }}>
+              <ShieldCheck size={16} color="var(--cyan)" />
+              <span style={{ fontSize: '12px', color: 'var(--cyan)', fontWeight: 600 }}>
+                256-bit SSL Encrypted • PCI-DSS Level 1 Certified
+              </span>
+            </div>
+
+            <button type="submit" className="btn btn-gradient" disabled={loading}>
+              {loading ? 'Initializing Checkout...' : 'Proceed to Payment'}
             </button>
           </form>
         ) : (
-          <div className="card" style={{ textAlign: 'center', padding: '32px 20px' }}>
+          <div className="receipt-card" style={{ textAlign: 'center', animation: 'modalPop 400ms var(--ease-spring)' }}>
             {depositResult.status === 'PENDING' && (
               <>
                 <div style={{ marginBottom: '16px' }}>
-                  <span className="badge-pill-pending">Pending Verification</span>
+                  <span className="badge-pill-pending">Awaiting Payment</span>
                 </div>
 
-                <h2 className="section-header" style={{ marginBottom: '8px' }}>Deposit Initialized</h2>
+                <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Deposit Initialized</h2>
                 <p className="caption-text" style={{ marginBottom: '20px' }}>
-                  Complete payment on Paystack. Reference: <strong>{depositResult.reference}</strong>
+                  Complete the payment on the Paystack checkout window. Reference: <strong>{depositResult.reference}</strong>
                 </p>
 
                 {depositResult.authorizationUrl && (
@@ -166,7 +196,7 @@ const Deposit = () => {
                   className="btn btn-primary"
                   disabled={polling}
                 >
-                  {polling ? 'Verifying...' : 'Check Payment Status'}
+                  {polling ? 'Verifying Transaction...' : 'Check Payment Status'}
                 </button>
               </>
             )}
@@ -178,46 +208,47 @@ const Deposit = () => {
                     width: '64px',
                     height: '64px',
                     borderRadius: '50%',
-                    background: 'var(--gradient-hero)',
-                    color: 'var(--text-primary)',
+                    background: 'var(--gradient-mint)',
+                    color: 'var(--bg-deep)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 16px auto',
-                    boxShadow: '0 8px 28px rgba(240, 64, 154, 0.4)',
-                    animation: 'modalPop 400ms var(--ease-spring)',
                   }}
                 >
-                  <CheckCircle size={36} strokeWidth={2} />
+                  <CheckCircle size={36} strokeWidth={2.4} />
                 </div>
 
-                <h2 className="section-header" style={{ marginBottom: '8px' }}>Deposit Complete</h2>
-                <p className="body-lg" style={{ fontSize: '32px', fontWeight: 700, color: 'var(--lime)', marginBottom: '8px', textAlign: 'center' }}>
+                <span className="badge-pill-success" style={{ marginBottom: '8px' }}>Deposit Confirmed</span>
+                <h2 style={{ fontSize: '34px', fontWeight: 800, margin: '8px 0', color: 'var(--mint)', fontVariantNumeric: 'tabular-nums' }}>
                   +{formatAmount(depositResult.amount)}
+                </h2>
+                <p className="caption-text" style={{ marginBottom: '24px' }}>
+                  Funds are now available in your PayPulse wallet.
                 </p>
-                <span className="caption-text" style={{ display: 'block', marginBottom: '28px', fontVariantNumeric: 'tabular-nums' }}>
-                  Ref: {depositResult.reference}
-                </span>
 
-                <button onClick={handleDone} className="btn btn-gradient">
-                  Return to Dashboard
-                </button>
-              </>
-            )}
-
-            {depositResult.status === 'FAILED' && (
-              <>
-                <div style={{ marginBottom: '16px' }}>
-                  <span className="badge-pill-failed">Verification Failed</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 0', borderTop: '1px dashed var(--border)', borderBottom: '1px dashed var(--border)', marginBottom: '24px', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="caption-text">Payment Gateway</span>
+                    <span style={{ fontWeight: 600 }}>Paystack Checkout</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="caption-text">Transaction Reference</span>
+                    <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
+                      {depositResult.reference}
+                    </span>
+                  </div>
                 </div>
 
-                <h2 className="section-header" style={{ marginBottom: '8px' }}>Deposit Failed</h2>
-                <p className="caption-text" style={{ marginBottom: '24px' }}>
-                  Could not verify your payment. Please try again.
-                </p>
-
-                <button onClick={() => setDepositResult(null)} className="btn btn-primary">
-                  Try Again
+                <button
+                  type="button"
+                  onClick={() => {
+                    refreshProfile();
+                    navigate('/dashboard');
+                  }}
+                  className="btn btn-gradient"
+                >
+                  Return to Dashboard
                 </button>
               </>
             )}

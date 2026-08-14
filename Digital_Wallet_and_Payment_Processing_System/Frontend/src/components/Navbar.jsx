@@ -1,140 +1,141 @@
-import React, { useContext, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { toast } from 'sonner';
+import React, { useContext } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { LogOut } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 const Navbar = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const isDashboard = location.pathname === '/dashboard';
 
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/dashboard':
         return 'PayPulse';
       case '/deposit':
-        return 'Deposit';
+        return 'Deposit Funds';
       case '/transfer':
-        return 'Transfer';
+        return 'Send Money';
       case '/transactions':
-        return 'Transactions';
+        return 'Activity Ledger';
       case '/profile':
-        return 'Profile';
+        return 'Account & Security';
       case '/change-password':
-        return 'Security';
+        return 'Change Password';
       case '/set-pin':
-        return 'PIN Setup';
+        return 'Set Transaction PIN';
       case '/change-pin':
-        return 'PIN Setup';
+        return 'Change PIN';
       default:
         return 'PayPulse';
     }
   };
 
-  const confirmLogout = () => {
-    setShowLogoutModal(false);
-    logout();
-    toast.info('Logged out successfully');
-    navigate('/login');
+  const handleBack = () => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   return (
-    <>
-      <header className="aurora-header">
-        <h1 className="screen-title" style={{ fontSize: '22px' }}>{getPageTitle()}</h1>
-
-        {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              {user.name}
-            </span>
-            <button
-              onClick={() => setShowLogoutModal(true)}
-              style={{
-                background: 'var(--surface-2)',
-                border: 'none',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--coral)',
-              }}
-              title="Sign out"
-            >
-              <LogOut size={16} strokeWidth={2} />
-            </button>
-          </div>
+    <header className="aurora-header">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {!isDashboard ? (
+          <button
+            onClick={handleBack}
+            style={{
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              borderRadius: '50%',
+              width: '36px',
+              height: '36px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-primary)',
+              transition: 'all 160ms var(--ease-smooth)',
+              flexShrink: 0,
+            }}
+            title="Go back"
+          >
+            <ArrowLeft size={18} strokeWidth={2.4} />
+          </button>
+        ) : (
+          <Link
+            to="/dashboard"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textDecoration: 'none',
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              padding: '5px',
+              flexShrink: 0,
+            }}
+            title="PayPulse Home"
+          >
+            <img
+              src="/favicon.svg"
+              alt="PayPulse Logo"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          </Link>
         )}
-      </header>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div
+        <h1 className="screen-title" style={{ fontSize: isDashboard ? '20px' : '18px', fontWeight: 800, letterSpacing: '-0.02em' }}>
+          {getPageTitle()}
+        </h1>
+      </div>
+
+      {/* Right side: User Profile Avatar badge (links directly to profile) */}
+      {user && (
+        <Link
+          to="/profile"
           style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(5, 5, 8, 0.75)',
-            backdropFilter: 'blur(12px)',
-            zIndex: 100,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
+            gap: '8px',
+            textDecoration: 'none',
+            color: 'var(--text-primary)',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            padding: '5px 12px 5px 6px',
+            borderRadius: 'var(--radius-pill)',
+            transition: 'all 160ms var(--ease-smooth)',
           }}
-          onClick={() => setShowLogoutModal(false)}
+          title="View Profile & Security"
         >
           <div
-            className="card"
-            style={{ width: '100%', maxWidth: '380px', padding: '24px', textAlign: 'center', animation: 'modalPop 300ms var(--ease-spring)' }}
-            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: 'var(--gradient-button)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              fontSize: '11px',
+              fontWeight: 800,
+            }}
           >
-            <div
-              style={{
-                width: '54px',
-                height: '54px',
-                borderRadius: '50%',
-                background: 'rgba(255, 92, 108, 0.15)',
-                color: 'var(--coral)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px auto',
-              }}
-            >
-              <LogOut size={26} strokeWidth={2} />
-            </div>
-            <h3 className="section-header" style={{ marginBottom: '8px' }}>Sign Out Confirmation</h3>
-            <p className="caption-text" style={{ marginBottom: '24px' }}>
-              Are you sure you want to end your current wallet session?
-            </p>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => setShowLogoutModal(false)}
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmLogout}
-                className="btn"
-                style={{ flex: 1, backgroundColor: 'var(--coral)', color: '#fff' }}
-              >
-                Sign Out
-              </button>
-            </div>
+            {(user?.name || 'U').charAt(0).toUpperCase()}
           </div>
-        </div>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            {user.name ? user.name.split(' ')[0] : 'Account'}
+          </span>
+        </Link>
       )}
-    </>
+    </header>
   );
 };
 

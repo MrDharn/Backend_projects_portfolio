@@ -1,49 +1,12 @@
 const mongoose = require("mongoose");
 
-const projectSchema = new mongoose.Schema(
+const downloadLogSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: true,
-    },
-
-    description: {
-      type: String,
-      required: true,
-    },
-
-    image: {
-      type: String,
-      default: "",
-    },
-
-    technologies: [
-      {
-        type: String,
-      },
-    ],
-
-    github: {
-      type: String,
-    },
-
-    demo: {
-      type: String,
-    },
-
-    featured: {
-      type: Boolean,
-      default: true,
-    },
-
-    order: {
-      type: Number,
-      default: 1,
-    },
+    fileName: String,
+    ipHash: String,
+    userAgent: String,
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
-module.exports = mongoose.model("Projects", projectSchema);
+module.exports = mongoose.model("DownloadLog", downloadLogSchema);

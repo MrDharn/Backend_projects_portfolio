@@ -55,7 +55,19 @@ const historyTransactionRoute = require("./routes/historyTransactionRoute");
 const { ChangePassword } = require("./controllers/authController");
 const authenticationMiddleware = require("./middlewares/authMiddleware");
 
-app.use(cors());
+
+//
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://my-portfolio.vercel.app",
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.use((req, res, next) => {

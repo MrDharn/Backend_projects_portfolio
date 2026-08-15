@@ -60,6 +60,7 @@ const authenticationMiddleware = require("./middlewares/authMiddleware");
 const allowedOrigins = [
   "http://localhost:5173",
   "https://paypulse-f230.onrender.com/",
+  "https://paypulse-azure.vercel.app/"
 ];
 
 app.use(

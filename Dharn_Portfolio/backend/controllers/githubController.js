@@ -1,11 +1,24 @@
-const asyncHandler = require('../utils/asyncHandler')
-const {successResponse} = require("../utils/apiResponse")
 const getGithubRepos = require('../services/githubService')
 
-const fetchGithubRepos = asyncHandler(async(req, res)=>{
-    const repos = await getGithubRepos()
+const fetchGithubRepos = async(req, res)=>{
+    try{
+        const repos = await getGithubRepos()
+        if(!repos) return res.status(404).json({
+            status:"failed",
+            message: "repo is not found"
+        })
 
-    successResponse(res, repos)
-})
+        res.status(200).json({
+            status:"success",
+            message: "Repos Fetched successfully",
+            data: repos
+        })
+    }catch(e){  
+        res.status(500).json({
+            status: "failed",
+            message: e.message || "Server Error"
+        })
+    }
+}
 
 module.exports = fetchGithubRepos

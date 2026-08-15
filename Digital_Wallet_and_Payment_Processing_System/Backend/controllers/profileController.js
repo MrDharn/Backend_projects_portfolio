@@ -16,7 +16,7 @@ const getProfileDetails = async(req, res)=>{
             message: "wallet is not attached to this user"
         })
 
-        const transactionLength = await transactionModel.countDocuments({userId: profile._id});
+        let transactionLength = await transactionModel.countDocuments({userId: profile._id});
         if(!transactionLength){
             transactionLength = 0
         }

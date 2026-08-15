@@ -58,4 +58,4 @@ const downloadProjectAsset = async(req, res)=> {
         })
     }
 }
-module.exports = {getAdminDashboardData}
+module.exports = {getAdminDashboardData, downloadProjectAsset}

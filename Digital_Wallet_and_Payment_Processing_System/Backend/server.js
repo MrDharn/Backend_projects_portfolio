@@ -8,42 +8,6 @@ const app = express();
 const PORT = process.env.PORT;
 const dns = require("dns");
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
-
-//Using the socket io for real time update
-// const server = http.createServer(app);
-// const io = new Server(server, {
-//   cors: {
-//     origin: `http://localhost:${PORT}`,
-//     methods: ["GET", "POST"],
-//   },
-// });
-
-//link users with the socket instance
-// const activeUsers = new Set();
-
-// io.on("connection", (socket) => { 
-//   console.log("Client connected: ${socket.id}");
-
-//   //when new users join the server
-
-//   socket.on("register_user", (userId) => {
-//     activeUsers.set(String(userId), socket.id);
-//     console.log(` User ${userId} registered to socket ${socket.id}`);
-//   });
-
-//   //instance for disconnection
-//   socket.on("disconnect", () => {
-//     for (const [userId, socketId] of activeUsers.entries()) {
-//       if (socketId === socket.id) {
-//         activeUsers.delete(userId);
-
-//         console.log(`User ${userId} disconnected`);
-//         break;
-//       }
-//     }
-//   });
-// });
-//Import functions
 const connectDB = require("./utils/db");
 const authRoutes = require("./routes/authRoutes");
 const walletRoutes = require("./routes/walletRoutes");
@@ -59,8 +23,8 @@ const authenticationMiddleware = require("./middlewares/authMiddleware");
 //
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://paypulse-f230.onrender.com/",
-  "https://paypulse-azure.vercel.app/"
+  "https://paypulse-f230.onrender.com",
+  "https://paypulse-azure.vercel.app"
 ];
 
 app.use(

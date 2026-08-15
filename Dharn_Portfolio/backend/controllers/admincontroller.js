@@ -39,4 +39,23 @@ const getAdminDashboardData = async(req, res)=> {
     }
 }
 
-module.exports = getAdmingDashboardData
+
+//Track number of Downloads
+
+const downloadProjectAsset = async(req, res)=> {
+    try{
+        const project = await projectModel.findByIdAndUpdate(req.params.id, {$inc: {downloadCount: 1}}, {new: true});
+
+        if(!project){
+            return res.status(404).json({status: "failed", message: "project not Found"})
+        }
+
+        res.download("./resume/resume.pdf")
+    }catch(e){
+        res.status(500).json({
+            status: "failed",
+            message: e.message || "Server Error"
+        })
+    }
+}
+module.exports = {getAdminDashboardData}

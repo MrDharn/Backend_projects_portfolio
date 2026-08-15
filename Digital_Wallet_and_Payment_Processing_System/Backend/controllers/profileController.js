@@ -20,7 +20,7 @@ const getProfileDetails = async(req, res)=>{
         if(!transactions){
             transactionLength = 0
         } else{
-            transactionLength = transactions.length
+            transactionLength = transactions.countDocuments()
         }
 
         const data = {
@@ -30,7 +30,8 @@ const getProfileDetails = async(req, res)=>{
             KYC_STATUS: profile.KYC_STATUS,
             walletNumber: wallet.walletNumber,
             balance: wallet.balance,
-            transactions: transactionLength
+            transactions: transactionLength,
+            isPinSet: Boolean(wallet.isPinSet)
         }
 
         console.log(data)

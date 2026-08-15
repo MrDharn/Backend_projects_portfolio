@@ -100,7 +100,7 @@ const withdrawFunds = async (req, res) => {
     //Create transfer recipient
     const transaction = new transactionModel({
       walletId: wallet._id,
-      userId: req.user._id,
+      userId: req.user.id,
       type_of_transaction: "WITHDRAWAL",
       status: "PENDING",
       referenceId: referenceId,

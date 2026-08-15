@@ -41,11 +41,11 @@ const getBankCode = async (bankName) => {
     });
     // console.log(response.data.data)
     const banks = response.data.data;
-    const bank = banks.find(
-      (b) =>
-        b.name.toLowerCase().split(" ")[0] ===
-        bankName.toLowerCase().split(" ")[0],
-    );
+
+    const target = bankName.toLowerCase().trim();
+
+    const bank = banks.find((b)=> b.name.toLowerCase() === target || b.slug.toLowerCase() === target) || 
+      banks.find((b)=> b.name.toLowerCase().includes(target))
 
     if (!bank) throw new Error("Bank Name not found");
     // console.log(bank, bank.code)

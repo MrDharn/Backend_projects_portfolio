@@ -2,83 +2,87 @@
 const { createLogger, format, transports } = require("winston");
 const { combine, timestamp, json, colorize, printf } = format;
 const Transport = require("winston-transport");
+
+// Imported Models
 const AuditLogModel = require("../Models/AuditLog");
+const FraudLogModel = require("../Models/FraudLog"); // Fixed: Added missing import
+
 // Console layout for clean local debugging
 const devFormat = printf(({ level, message, timestamp, ...meta }) => {
   const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : "";
   return `[${timestamp}] ${level}: ${message} ${metaStr}`;
 });
 
-//Define custom winston transport
+// Custom Winston Transport for Audit Logs
 class MongoAuditTransport extends Transport {
   constructor(opts) {
     super(opts);
   }
+
   async log(info, callback) {
-    setTimeout(() => this.emit("logged", info));
     try {
-      const logEntry = new AudioBuffer({
+      // Fixed: Using AuditLogModel instead of Web Audio API's AudioBuffer
+      const logEntry = new AuditLogModel({
         userId: info.userId || null,
-        action: info.message, 
+        action: info.message,
         ip_address: info.ipAddress || "unknown",
         deviceInfo: info.deviceInfo || "unknown",
       });
-  
-      await logEntry.save()
+
+      await logEntry.save();
     } catch (e) {
-      console.error("Failed to save audit", e);
+      console.error("Failed to save audit log to DB:", e);
     }
-  
+
     callback();
   }
 }
 
+// Custom Winston Transport for Fraud Logs
+class MongoFraudTransport extends Transport {
+  constructor(opts) {
+    super(opts);
+  }
 
-class MongoFraudTransport extends Transport{
-    constructor(opts){
-        super(opts)
+  async log(info, callback) {
+    try {
+      const fraudEntry = new FraudLogModel({
+        userId: info.userId || null,
+        transactionId: info.transactionId || null,
+        reason: info.message,
+        status: info.status || "INVESTIGATING",
+      });
+
+      await fraudEntry.save();
+    } catch (e) {
+      console.error("Failed to save fraud log to DB:", e);
     }
 
-    async log(info, callback){
-        setTimeout(()=> this.emit('logged', info))
-
-        try{
-            const fraudEntry = new FraudLogModel({
-                userId: info.userId || null,
-                transactionId: info.transactionId || null,
-                reason: info.message, // The log message string explains the fraud issue
-                status: info.status || 'INVESTIGATING' // Defaults to investigating
-            });
-
-            await fraudEntry.save();
-
-        }catch(e){
-            console.error("This is error from Fraud Log", e)
-        }
-
-        callback();
-    }
+    callback();
+  }
 }
 
+// 1. Audit Logger Configuration
 const auditLogger = createLogger({
   level: "info",
   format: combine(timestamp(), json()),
   transports: [
     new transports.File({ filename: "logs/audit.log" }),
-
-    //Automatically add to database
     new MongoAuditTransport(),
   ],
 });
 
-// 2. Fraud Logger Configuration (Security anomalies, failed auth, threat patterns)
+// 2. Fraud Logger Configuration
 const fraudLogger = createLogger({
-  level: "warn", // Only captures warn and error levels
+  level: "warn",
   format: combine(timestamp(), json()),
-  transports: [new transports.File({ filename: "logs/fraud.log" })],
+  transports: [
+    new transports.File({ filename: "logs/fraud.log" }),
+    new MongoFraudTransport(), // Fixed: Added MongoFraudTransport here
+  ],
 });
 
-// If we are developing locally, stream both to the console with colors
+// Stream both to console during local development
 if (process.env.NODE_ENV !== "production") {
   const consoleTransport = new transports.Console({
     format: combine(colorize(), devFormat),

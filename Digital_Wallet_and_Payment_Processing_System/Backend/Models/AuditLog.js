@@ -1,18 +1,31 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
-const AuditLogSchema = new mongoose.Schema({
+const AuditLogSchema = new mongoose.Schema(
+  {
     userId: {
-        type: mongoose.Types.ObjectId,
-        ref: 'users'
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'users', 
+      index: true, 
     },
     action: {
-        type: String
-    }, 
+      type: String,
+      required: true, 
+      trim: true,
+    },
     ip_address: {
-        type: String
+      type: String,
+      default: 'unknown',
     },
     deviceInfo: {
-        type: String
-    }
-}, {timestamps: true})
-module.exports = mongoose.model('auditLog', AuditLogSchema)
+      type: String,
+      default: 'unknown',
+    },
+  },
+  { 
+    timestamps: true 
+  }
+);
+
+AuditLogSchema.index({ userId: 1, createdAt: -1 });
+
+module.exports = mongoose.model('AuditLog', AuditLogSchema); 

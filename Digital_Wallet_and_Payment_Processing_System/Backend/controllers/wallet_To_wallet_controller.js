@@ -127,7 +127,7 @@ const transferToWallet = async (req, res) => {
         const updatedSenderWallet = await walletModel.findOneAndUpdate(
             { _id: fromWallet._id, balance: { $gte: amount } },
             { $inc: { balance: -amount } },
-            { session, new: true }
+            { session, returnDocument: 'after'}
         );
 
         if (!updatedSenderWallet) {
@@ -285,7 +285,6 @@ const resolveWalletNameController = async (req, res) => {
             data: {
                 walletNumber: wallet.walletNumber,
                 accountName: accountName,
-                recipientEmail: user.email
             }
         });
 
@@ -300,4 +299,4 @@ const resolveWalletNameController = async (req, res) => {
         });
     }
 };
-module.exports = { transferToWallet, verificationController };
+module.exports = { transferToWallet, verificationController, resolveWalletNameController};

@@ -4,6 +4,7 @@ const transactionModel = require('../Models/Transaction')
 const getProfileDetails = async(req, res)=>{
     try{
         const profile = await userModel.findOne({email: req.user.email})
+        console.log(profile)
         if(!profile)return res.status(404).json({
             status: "failed",
             message: "User does not exist"
@@ -15,12 +16,9 @@ const getProfileDetails = async(req, res)=>{
             message: "wallet is not attached to this user"
         })
 
-        let transactionLength
-        const transactions = await transactionModel.findOne({userId: profile._id});
-        if(!transactions){
+        const transactionLength = await transactionModel.countDocuments({userId: profile._id});
+        if(!transactionLength){
             transactionLength = 0
-        } else{
-            transactionLength = transactions.countDocuments()
         }
 
         const data = {
@@ -44,7 +42,7 @@ const getProfileDetails = async(req, res)=>{
         console.error(e);
         res.status(500).json({
             status: "failed",
-            mesage: "Something went wrong"
+            message: "Something went wrong"
         })
     }
 }

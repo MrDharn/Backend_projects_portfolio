@@ -54,7 +54,7 @@ app.use("/api/v1/wallet", walletRoutes);
 //deposit route
 app.use("/api/v1/wallet", fundwalletRoute);
 
-//transfer route
+//transfer to bank account (Commercial bank) route
 app.use("/api/v1/wallet", withdrawfundsRoute);
 
 //transfer to another wallet route

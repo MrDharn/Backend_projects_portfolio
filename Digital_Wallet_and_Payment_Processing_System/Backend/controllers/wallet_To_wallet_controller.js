@@ -130,6 +130,7 @@ const transferToWallet = async (req, res) => {
             { session, returnDocument: 'after'}
         );
 
+        console.log(updatedSenderWallet)
         if (!updatedSenderWallet) {
             await session.abortTransaction();
             return res.status(400).json({

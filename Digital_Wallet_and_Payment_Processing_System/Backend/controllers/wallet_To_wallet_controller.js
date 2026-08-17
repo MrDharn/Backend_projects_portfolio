@@ -8,7 +8,6 @@ const generateReference = require("../utils/generateReference");
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-// Import loggers
 const { auditLogger, fraudLogger } = require('../utils/logger');
 
 const transferToWallet = async (req, res) => {
@@ -21,7 +20,7 @@ const transferToWallet = async (req, res) => {
     try {
         let { fromWalletNumber, toWalletNumber, amount, pin } = req.body;
         
-        // 1. Validate inputs are present
+        // 1. Inputs validation
         if (!fromWalletNumber || !toWalletNumber || !amount || !pin) {
             await session.abortTransaction();
             return res.status(400).json({
@@ -30,7 +29,6 @@ const transferToWallet = async (req, res) => {
             });
         }
 
-        // Parse amount cleanly
         amount = Number(amount);
         if (isNaN(amount) || amount <= 0) {
             await session.abortTransaction();
@@ -40,7 +38,6 @@ const transferToWallet = async (req, res) => {
             });
         }
 
-        // Prevent self-transfer loops
         if (fromWalletNumber === toWalletNumber) {
             await session.abortTransaction();
             return res.status(400).json({
@@ -49,7 +46,7 @@ const transferToWallet = async (req, res) => {
             });
         }
 
-        // 2. Validate origin wallet & Ownership check
+        // 2. Origin wallet lookup & verification
         const fromWallet = await walletModel.findOne({ 
             walletNumber: fromWalletNumber,
             userId: req.user.id
@@ -70,7 +67,7 @@ const transferToWallet = async (req, res) => {
             });
         }
 
-        // 3. Validate destination wallet
+        // 3. Destination wallet lookup
         const toWallet = await walletModel.findOne({ walletNumber: toWalletNumber }).session(session);
         if (!toWallet) {
             await session.abortTransaction();
@@ -80,7 +77,7 @@ const transferToWallet = async (req, res) => {
             });
         }
 
-        // 4. Ensure sender's PIN is set
+        // 4. PIN configured check
         if (!fromWallet.isPinSet) {
             await session.abortTransaction();
             return res.status(403).json({
@@ -123,15 +120,14 @@ const transferToWallet = async (req, res) => {
             });
         }
 
-        // 7. Atomic Financial Updates
-        const updatedSenderWallet = await walletModel.findOneAndUpdate(
+        // 7. Execute Wallet Updates via direct updateOne within session
+        const senderUpdate = await walletModel.updateOne(
             { _id: fromWallet._id, balance: { $gte: amount } },
             { $inc: { balance: -amount } },
-            { session, returnDocument: 'after'}
+            { session }
         );
 
-        console.log(updatedSenderWallet)
-        if (!updatedSenderWallet) {
+        if (senderUpdate.matchedCount === 0 || senderUpdate.modifiedCount === 0) {
             await session.abortTransaction();
             return res.status(400).json({
                 status: "failed",
@@ -145,7 +141,7 @@ const transferToWallet = async (req, res) => {
             { session }
         );
 
-        // 8. Log Ledger Entry
+        // 8. Save Ledger Entry
         const reference = generateReference();
         
         const transaction = new transactionModel({
@@ -160,7 +156,7 @@ const transferToWallet = async (req, res) => {
 
         await transaction.save({ session });
 
-        // Commit Transaction State
+        // Commit transaction
         await session.commitTransaction();
         
         auditLogger.info(`Successfully transferred ₦${amount} from ${fromWalletNumber} to ${toWalletNumber}`, {
@@ -186,14 +182,17 @@ const transferToWallet = async (req, res) => {
             deviceInfo
         });
 
+        
+        console.error(e.message)
         return res.status(500).json({
             status: "failed",
-            message: "Something went wrong"
+            message: e.message
         });
     } finally {
         await session.endSession();
     }
 };
+
 
 const verificationController = async (req, res) => {
     const ipAddress = req.ip || req.headers['x-forwarded-for'] || 'unknown';

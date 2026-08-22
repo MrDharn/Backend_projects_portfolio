@@ -1,22 +1,28 @@
 const mongoose = require("mongoose");
+
 const visitorSchema = new mongoose.Schema(
   {
-    ipHash: String,
-
-    browser: String,
-
-    os: String,
-
-    page: String,
-
-    visitedAt: {
-      type: Date,
-      default: Date.now,
+    ipHash: {
+      type: String,
+      required: true,
+      index: true, // Speeds up queries when searching by IP
+    },
+    browser: {
+      type: String,
+      trim: true,
+    },
+    os: {
+      type: String,
+      trim: true,
+    },
+    page: {
+      type: String,
+      trim: true,
     },
   },
   {
-    timestamps: true,
-  },
+    timestamps: true, // Handled automatically: createdAt & updatedAt
+  }
 );
 
 module.exports = mongoose.model("Visitor", visitorSchema);

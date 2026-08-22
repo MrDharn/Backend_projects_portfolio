@@ -85,7 +85,7 @@ const transferToWallet = async (req, res) => {
                 status: "INVESTIGATING"
             });
 
-            return res.status(401).json({ 
+            return res.status(400).json({ 
                 status: "failed",
                 message: "Invalid security PIN"
             });
@@ -127,12 +127,12 @@ const transferToWallet = async (req, res) => {
         
         const transaction = new transactionModel({
             userId: req.user.id, 
-            senderWallet: fromWalletNumber,
-            receiverWallet: toWalletNumber,
+            walletId: fromWallet._id,
             type_of_transaction: "TRANSFER",
             status: "SUCCESS", 
             referenceId: reference,
-            amount: amount
+            amount: String(amount),
+            description: `Transfer of ₦${amount} to wallet ${toWalletNumber}`
         });
 
         await transaction.save({ session });
@@ -171,3 +171,5 @@ const transferToWallet = async (req, res) => {
         await session.endSession();
     }
 };
+
+module.exports = {transferToWallet}

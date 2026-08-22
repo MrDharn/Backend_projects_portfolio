@@ -5,7 +5,7 @@ const  {transferToWallet, verificationController, resolveWalletNameController} =
 const authenticationMiddleware = require('../middlewares/authMiddleware');
 
 transferRoute.route('/transfer-wallet').post(authenticationMiddleware, transferToWallet)
-transferRoute.route('/transfer-wallet/verify').get(authenticationMiddleware, verificationController);
-transferRoute.route('/transfer-wallet/resolve').get(authenticationMiddleware, resolveWalletNameController)
+// transferRoute.route('/transfer-wallet/verify').get(authenticationMiddleware, verificationController);
+// transferRoute.route('/transfer-wallet/resolve').get(authenticationMiddleware, resolveWalletNameController)
 
 module.exports = transferRoute

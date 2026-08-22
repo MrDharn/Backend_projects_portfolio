@@ -10,7 +10,7 @@ const TransactionSchema = new mongoose.Schema({
     },
     type_of_transaction: {
         type: String,
-        enum: ['DEPOSIT','WITHDRAWAL','MERCHANT_PAYMENT','DEBIT', 'CREDIT'],
+        enum: ['DEPOSIT','WITHDRAWAL','MERCHANT_PAYMENT','DEBIT', 'CREDIT', 'TRANSFER'],
         default: ""
     },
     status: {

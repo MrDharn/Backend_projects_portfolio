@@ -1,12 +1,22 @@
 const path = require('path')
 const downloadModel = require('../models/downloadModel')
-const asyncHandler = require('../utils/asyncHandler')
 
-const downloadResume = asyncHandler(async(req, res)=>{
-    await downloadModel.create({});
-    const file = path.join(process.cwd(), 'src','uploads','Daniel_resume.pdf')
+const downloadResume = async(req, res)=>{
+    try{
+        await downloadModel.create({
+            fileName: 'Daniel_resume.pdf',
+            userAgent: req.get('User-Agent')
+        });
+        const file = path.join(process.cwd(), 'src','uploads','Daniel_resume.pdf')
+        
+        res.download(file);
 
-    res.download(file);
-});
+    }catch(e){
+        res.status(500).json({
+            status: 'failed',
+            message: "Server Error" || e.message
+        })
+    }
+};
 
 module.exports = downloadResume

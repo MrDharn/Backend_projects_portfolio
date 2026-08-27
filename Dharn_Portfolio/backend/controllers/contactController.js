@@ -13,6 +13,7 @@ const createContact = async(req, res)=>{
         Promise.allSettled([sendPortfolioNotification(req.body),
             sendConfirmationEmail(req.body)
         ]).catch((err)=> console.error("Email Delivery backgorund Error:", err))
+        
         res.status(200).json({
             status: "success",
             message: "Message sent successfully",

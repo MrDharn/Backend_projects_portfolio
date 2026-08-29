@@ -664,7 +664,95 @@ const refundFailedWithdrawal = async (referenceId, userId, amount) => {
   }
 };
 
+
+/**
+ * =========================================================
+ * RESOLVE BANK ACCOUNT
+ * =========================================================
+ */
+const resolveBankAccount = async (req, res) => {
+  try {
+    const { bankName, accountNumber } = req.body;
+
+    // Validate bank
+    if (!bankName) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Bank name is required",
+      });
+    }
+
+    // Validate account number
+    if (!accountNumber) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Account number is required",
+      });
+    }
+
+    // Remove spaces just in case
+    const cleanAccountNumber = String(accountNumber).trim();
+
+    // Nigerian bank account numbers should be 10 digits
+    if (!/^\d{10}$/.test(cleanAccountNumber)) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Account number must be exactly 10 digits",
+      });
+    }
+
+    // Get Paystack bank code
+    const bankCode = await getBankCode(bankName);
+
+    if (!bankCode) {
+      return res.status(404).json({
+        status: "failed",
+        message: "Bank could not be found",
+      });
+    }
+
+    // Resolve account with Paystack
+    const accountName = await resolveAccountNumber(
+      cleanAccountNumber,
+      bankCode
+    );
+
+    if (!accountName) {
+      return res.status(404).json({
+        status: "failed",
+        message: "Could not resolve this bank account",
+      });
+    }
+
+    // Return account details to frontend
+    return res.status(200).json({
+      status: "success",
+      message: "Account resolved successfully",
+      data: {
+        accountName,
+        accountNumber: cleanAccountNumber,
+        bankName,
+        bankCode,
+      },
+    });
+
+  } catch (error) {
+    console.error(
+      "Resolve Bank Account Error:",
+      error
+    );
+
+    return res.status(500).json({
+      status: "failed",
+      message:
+        error.message ||
+        "Could not resolve bank account",
+    });
+  }
+};
+
 module.exports = {
   withdrawFunds,
   verificationController,
+  resolveBankAccount
 };

@@ -25,8 +25,9 @@ const initiateTransaction = async (email, amount, reference, callback_url) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Paystack Initialization Error: ",
-      e.response?.data?.message || e.message,
+      `Paystack Initialization Error: ${
+        e.response?.data?.message || e.message
+      }`,
     );
   }
 };
@@ -44,16 +45,18 @@ const getBankCode = async (bankName) => {
 
     const target = bankName.toLowerCase().trim();
 
-    const bank = banks.find((b)=> b.name.toLowerCase() === target || b.slug.toLowerCase() === target) || 
-      banks.find((b)=> b.name.toLowerCase().includes(target))
+    const bank =
+      banks.find(
+        (b) =>
+          b.name.toLowerCase() === target || b.slug.toLowerCase() === target,
+      ) || banks.find((b) => b.name.toLowerCase().includes(target));
 
     if (!bank) throw new Error("Bank Name not found");
     // console.log(bank, bank.code)
     return bank.code;
   } catch (e) {
     throw new Error(
-      `GetBank Code Error:`,
-      e.response?.data?.message || e.message,
+      `Get Bankcode Error: ${e.response?.data?.message || e.message}`,
     );
   }
 };
@@ -77,8 +80,7 @@ const initiateWithdrawal = async (amount, recipient, reference, reason) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      `Withdrawal Error:
-      ${e.response?.data?.message} || ${e.message}`,
+      `Withdrawal Error: ${e.response?.data?.message || e.message}`,
     );
   }
 };
@@ -96,8 +98,7 @@ const verifyReferenceForDeposit = async (reference) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Verification Error:",
-      e.response?.data?.message || e.message,
+      `Verification Error: ${e.response?.data?.message || e.message}`,
     );
   }
 };
@@ -110,8 +111,9 @@ const verifyReferenceForTransfer = async (reference) => {
     return response.data;
   } catch (e) {
     throw new Error(
-      "Verification Error:",
-      e.response?.data?.message || e.message,
+      `Verification Error For Transfer Reference: ${
+        e.response?.data?.message || e.message
+      }`,
     );
   }
 };
@@ -136,8 +138,7 @@ const initiateRecipient = async (name, accountNumber, bankCode) => {
     return response.data.data.recipient_code;
   } catch (e) {
     throw new Error(
-      "Recipient Creation Error:",
-      e.response?.data?.message || e.message,
+      `Recipient Creation Error: ${e.response?.data?.message || e.message}`,
     );
   }
 };
@@ -158,8 +159,9 @@ const resolveAccountNumber = async (accountNumber, bankCode) => {
     return response.data.data.account_name;
   } catch (e) {
     throw new Error(
-      `Resolving account Number Error:
-      ${e.response?.data?.message} || ${e.message},`
+      `Resolving Account Number/Name Error: ${
+        e.response?.data?.message || e.message
+      }`,
     );
   }
 };

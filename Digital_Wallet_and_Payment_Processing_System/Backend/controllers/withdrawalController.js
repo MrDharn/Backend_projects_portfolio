@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const generateReference = require("../utils/generateReference");
 const sendEmail = require("../utils/mailer");
+
 const {
   getBankCode,
   verifyReferenceForTransfer,
@@ -8,278 +9,662 @@ const {
   initiateRecipient,
   resolveAccountNumber,
 } = require("../utils/payStackService");
+
 const bcrypt = require("bcrypt");
 
 const walletModel = require("../Models/Wallet");
 const transactionModel = require("../Models/Transaction");
 
+/**
+ * =========================================================
+ * WITHDRAW FUNDS
+ * =========================================================
+ */
 const withdrawFunds = async (req, res) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    //user Wallet
-    let { pin, bankAccount, bankName, amount } = req.body;
 
+  try {
+    const { pin, bankAccount, bankName, amount } = req.body;
+
+    const userId = req.user.id;
+
+    // -----------------------------------------------------
+    // 1. Validate request
+    // -----------------------------------------------------
     if (!pin || !bankAccount || !bankName || !amount) {
-      session.abortTransaction();
       return res.status(400).json({
         status: "failed",
-        message: "Empty fields",
+        message: "All fields are required",
       });
     }
-    //Validate wallet Number
-    const wallet = await walletModel
-      .findOne({ userId: req.user.id })
-      .select("+pin")
-      .session(session);
+
+    const withdrawalAmount = Number(amount);
+
+    if (!Number.isFinite(withdrawalAmount) || withdrawalAmount <= 0) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Invalid withdrawal amount",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 2. Validate PIN format
+    // -----------------------------------------------------
+    let userPin = pin;
+
+    if (typeof userPin === "number") {
+      userPin = String(userPin);
+    }
+
+    if (typeof userPin !== "string") {
+      return res.status(400).json({
+        status: "failed",
+        message: "Invalid PIN",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 3. Get wallet
+    // -----------------------------------------------------
+    const wallet = await walletModel.findOne({ userId }).select("+pin");
+
     if (!wallet) {
-      session.abortTransaction();
       return res.status(404).json({
         status: "failed",
         message: "Wallet could not be found",
       });
     }
-    //Request Withrawal
 
-    const referenceId = generateReference();
-
-    //Check if pin is not set
-
-    if(!wallet.isPinSet){
-      session.abortTransaction()
+    // -----------------------------------------------------
+    // 4. Check if PIN is set
+    // -----------------------------------------------------
+    if (!wallet.isPinSet || !wallet.pin) {
       return res.status(400).json({
         status: "failed",
-        message: "you have not set your pin "
-      })
-    }
-
-    //Validate Pin
-    if (typeof pin === "number") {
-      pin = String(pin);
-    }
-
-    //Compare pin
-    const isPin = await bcrypt.compare(pin, wallet.pin);
-    if (!isPin) {
-      session.abortTransaction();
-      return res.status(400).json({
-        status: "failed",
-        message: "pin in Invalid",
+        message: "You have not set your PIN",
       });
     }
-    //validate Balance
-    if (wallet.balance < Number(amount)) {
-      session.abortTransaction();
+
+    // -----------------------------------------------------
+    // 5. Validate PIN
+    // -----------------------------------------------------
+    const isPinValid = await bcrypt.compare(userPin, wallet.pin);
+
+    if (!isPinValid) {
+      return res.status(400).json({
+        status: "failed",
+        message: "PIN is invalid",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 6. Validate balance
+    // -----------------------------------------------------
+    if (wallet.balance < withdrawalAmount) {
       return res.status(400).json({
         status: "failed",
         message: "Insufficient balance",
       });
     }
 
-    //validate bank Account
-    const validateBank = await getBankCode(bankName);
+    // -----------------------------------------------------
+    // 7. Get bank code
+    // -----------------------------------------------------
+    const bankCode = await getBankCode(bankName);
 
-    console.log(validateBank)
-
-    if (!validateBank) {
-      session.abortTransaction();
+    if (!bankCode) {
       return res.status(404).json({
         status: "failed",
-        message: "Invalid bank name or Account",
+        message: "Invalid bank name",
       });
     }
 
-    /**
-     *
-     * DEDUCT FUNDS HERE EVEN AT PENDING STAGE
-     */
-
-    wallet.balance -= Number(amount);
-    await wallet.save({ session });
-
-    //Create transfer recipient
-    const transaction = new transactionModel({
-      walletId: wallet._id,
-      userId: req.user.id,
-      type_of_transaction: "WITHDRAWAL",
-      status: "PENDING",
-      referenceId: referenceId,
-      amount: String(amount),
-    });
-
-    await transaction.save({ session });
-
-    /**
-     *
-     * Resolve Account Number
-     */
-
-    const accountName = await resolveAccountNumber(bankAccount, validateBank);
-    // console.log(accountName)
+    // -----------------------------------------------------
+    // 8. Resolve bank account
+    // -----------------------------------------------------
+    const accountName = await resolveAccountNumber(bankAccount, bankCode);
 
     if (!accountName) {
-      session.abortTransaction();
-      return res.status(404).json({
+      return res.status(400).json({
         status: "failed",
-        message: "Could not resolved the bank account",
+        message: "Could not resolve bank account",
       });
     }
 
-    //Make Account A  Beneficiary if possible
-    const RecipientCode = await initiateRecipient(
+    // -----------------------------------------------------
+    // 9. Create Paystack recipient
+    // -----------------------------------------------------
+    const recipientCode = await initiateRecipient(
       accountName,
       bankAccount,
-      validateBank,
+      bankCode,
     );
+
+    if (!recipientCode) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Could not create transfer recipient",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 10. Generate our own reference
+    // -----------------------------------------------------
+    const referenceId = generateReference();
+
+    // -----------------------------------------------------
+    // 11. Start MongoDB transaction
+    // -----------------------------------------------------
+    session.startTransaction();
+
+    // Re-fetch wallet inside transaction to avoid stale balance
+    const updatedWallet = await walletModel
+      .findOne({ userId })
+      .select("+pin")
+      .session(session);
+
+    if (!updatedWallet) {
+      await session.abortTransaction();
+
+      return res.status(404).json({
+        status: "failed",
+        message: "Wallet could not be found",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 12. Re-check balance inside transaction
+    // -----------------------------------------------------
+    if (updatedWallet.balance < withdrawalAmount) {
+      await session.abortTransaction();
+
+      return res.status(400).json({
+        status: "failed",
+        message: "Insufficient balance",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 13. Deduct / reserve money
+    // -----------------------------------------------------
+    updatedWallet.balance -= withdrawalAmount;
+
+    await updatedWallet.save({ session });
+
+    // -----------------------------------------------------
+    // 14. Create PENDING transaction
+    // -----------------------------------------------------
+    const transaction = new transactionModel({
+      walletId: updatedWallet._id,
+      userId,
+      type_of_transaction: "WITHDRAWAL",
+      status: "PENDING",
+      referenceId,
+      amount: withdrawalAmount,
+      bankName,
+      bankAccount,
+      recipientCode,
+    });
 
     await transaction.save({ session });
 
-    //initiate transfer
-    const initiatePaystackWithdrawal = await initiateWithdrawal(
-      Number(amount),
-      RecipientCode,
-      referenceId,
-      "balance",
+    // -----------------------------------------------------
+    // 15. Commit MongoDB transaction
+    // -----------------------------------------------------
+    await session.commitTransaction();
+
+    // -----------------------------------------------------
+    // 16. Initiate Paystack transfer AFTER DB commit
+    // -----------------------------------------------------
+    let paystackResponse;
+
+    try {
+      paystackResponse = await initiateWithdrawal(
+        withdrawalAmount,
+        recipientCode,
+        referenceId,
+        "balance",
+      );
+    } catch (paystackError) {
+      console.error("Paystack withdrawal initiation error:", paystackError);
+
+      // Mark transaction as failed and refund wallet
+      await refundFailedWithdrawal(referenceId, userId, withdrawalAmount);
+
+      return res.status(500).json({
+        status: "failed",
+        message: "Could not initiate withdrawal",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 17. Validate Paystack response
+    // -----------------------------------------------------
+    if (!paystackResponse || !paystackResponse.status) {
+      await refundFailedWithdrawal(referenceId, userId, withdrawalAmount);
+
+      return res.status(400).json({
+        status: "failed",
+        message:
+          paystackResponse?.message ||
+          "Paystack could not initiate the withdrawal",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 18. Save Paystack transfer information
+    // -----------------------------------------------------
+    await transactionModel.findOneAndUpdate(
+      {
+        referenceId,
+        userId,
+      },
+      {
+        $set: {
+          paystackTransferCode: paystackResponse.data?.transfer_code || null,
+
+          paystackReference: paystackResponse.data?.reference || referenceId,
+        },
+      },
     );
 
-    if (req.user && req.user.email) {
-      sendEmail(
-        req.user.email,
-        "Withdrawal has been initiated",
-        `Hello, you have initiated a withdrawal of ₦${amount} to ${bankName} (${bankAccount}). Your reference is ${referenceId}. We will notify you once processing is complete.`,
-      );
+    // -----------------------------------------------------
+    // 19. Send email
+    // -----------------------------------------------------
+    if (req.user?.email) {
+      try {
+        await sendEmail(
+          req.user.email,
+          "Withdrawal has been initiated",
+          `Hello, you have initiated a withdrawal of ₦${withdrawalAmount.toLocaleString()} to ${bankName} (${bankAccount}). Your reference is ${referenceId}. We will notify you once processing is complete.`,
+        );
+      } catch (emailError) {
+        console.error("Withdrawal email error:", emailError);
+      }
     }
-    await session.commitTransaction();
-    res.status(200).json({
+
+    return res.status(200).json({
       status: "success",
-      message: "withdrawal is initiated successfully",
+      message: "Withdrawal initiated successfully",
+      referenceId,
+      transaction: {
+        amount: withdrawalAmount,
+        bankName,
+        bankAccount,
+        status: "PENDING",
+        referenceId,
+      },
     });
-  } catch (e) {
-    session.abortTransaction();
-    console.error(e);
-    res.status(500).json({
+  } catch (error) {
+    console.error("Withdrawal error:", error);
+
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    return res.status(500).json({
       status: "failed",
       message: "Something went wrong",
     });
   } finally {
-    session.endSession();
+    await session.endSession();
   }
 };
 
+/**
+ * =========================================================
+ * VERIFY WITHDRAWAL
+ * =========================================================
+ */
 const verificationController = async (req, res) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
+
   try {
     const { reference } = req.params;
 
-    //validate the transaction model with the reference
-    const transaction = await transactionModel
-      .findOne({ referenceId: reference })
-      .session(session);
-    const wallet = await walletModel
-      .findByOne({ userId: req.user._id })
-      .session(session);
+    const userId = req.user.id;
 
-    //Validate the wallet and transaction
-    if (!transaction || !wallet) {
-      await session.abortTransaction();
-      return res.status(404).json({
+    if (!reference) {
+      return res.status(400).json({
         status: "failed",
-        message: "Cannot find wallet or transaction",
+        message: "Transaction reference is required",
       });
     }
 
-    //If the transaction is already Completed, then abort the transaction to improve the integrity
+    // -----------------------------------------------------
+    // 1. Find transaction belonging to this user
+    // -----------------------------------------------------
+    const transaction = await transactionModel.findOne({
+      referenceId: reference,
+      userId,
+    });
 
+    if (!transaction) {
+      return res.status(404).json({
+        status: "failed",
+        message: "Transaction could not be found",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 2. Find wallet belonging to this user
+    // -----------------------------------------------------
+    const wallet = await walletModel.findOne({
+      userId,
+    });
+
+    if (!wallet) {
+      return res.status(404).json({
+        status: "failed",
+        message: "Wallet could not be found",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 3. Prevent processing completed transaction
+    // -----------------------------------------------------
     if (transaction.status === "SUCCESS") {
-      await session.abortTransaction();
-      return res.status(404).json({
-        status: "failed",
-        message: "This transaction is already processed",
-      });
-    }
-
-    //Check the integrity of the transaction using reference ID
-    const verification = await verifyReferenceForTransfer(transaction.referenceId);
-
-    //Improving the integrity by ensuring that payment referenceId in paystack is same as the transaction referemce
-    const payment = verification.data;
-    if (payment.reference !== transaction.referenceId) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        status: "failed",
-        message: "ReferenceId does not match",
-      });
-    }
-
-    // Verify that the amount is the same (Integrity improvement)
-    if (payment.amount !== transaction.amount * 100) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        status: "failed",
-        message: "amount processed is not Valid",
-      });
-    }
-
-    //Check for currency Integrity
-    if (payment.currency !== wallet.currency) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        status: "failed",
-        message: "currency mismatch",
-      });
-    }
-
-    //perform transaction and update the status of the transaction
-    if (verification.data.status === "success") {
-      transaction.status = "SUCCESS";
-      await transaction.save({ session });
-      await wallet.save({ session });
-      await session.commitTransaction();
-
-      //  TRIGGER EMAIL NOTIFICATION: Bank Transfer Success
-      if (req.user && req.user.email) {
-        sendEmail(
-          req.user.email,
-          "Withdrawal Successful",
-          `Great news! Your withdrawal of ₦${transaction.amount} has been successfully dispatched to your commercial bank account. Ref: ${transaction.referenceId}.`,
-        );
-      }
       return res.status(200).json({
         status: "success",
-        message: `You have been debited with ${transaction.amount}`,
+        message: "This transaction has already been completed",
+        transaction,
         balance: wallet.balance,
+      });
+    }
+
+    // -----------------------------------------------------
+    // 4. Verify transfer with Paystack
+    // -----------------------------------------------------
+    const verification = await verifyReferenceForTransfer(reference);
+
+    if (!verification || !verification.status) {
+      return res.status(400).json({
+        status: "failed",
+        message:
+          verification?.message || "Could not verify transaction with Paystack",
+      });
+    }
+
+    const payment = verification.data;
+
+    // -----------------------------------------------------
+    // 5. Verify reference
+    // -----------------------------------------------------
+    if (payment.reference !== transaction.referenceId) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Transaction reference does not match",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 6. Verify amount
+    // -----------------------------------------------------
+    const expectedAmountInKobo = Number(transaction.amount) * 100;
+
+    if (Number(payment.amount) !== expectedAmountInKobo) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Transaction amount does not match",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 7. Verify currency
+    // -----------------------------------------------------
+    if (payment.currency !== wallet.currency) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Currency mismatch",
+      });
+    }
+
+    // -----------------------------------------------------
+    // 8. Handle SUCCESS
+    // -----------------------------------------------------
+    if (payment.status === "success") {
+      session.startTransaction();
+
+      // Atomic status transition
+      const updatedTransaction = await transactionModel.findOneAndUpdate(
+        {
+          _id: transaction._id,
+          status: "PENDING",
+        },
+        {
+          $set: {
+            status: "SUCCESS",
+          },
+        },
+        {
+          new: true,
+          session,
+        },
+      );
+
+      if (!updatedTransaction) {
+        await session.abortTransaction();
+
+        return res.status(200).json({
+          status: "success",
+          message: "Transaction has already been processed",
+        });
+      }
+
+      await session.commitTransaction();
+
+      if (req.user?.email) {
+        try {
+          await sendEmail(
+            req.user.email,
+            "Withdrawal Successful",
+            `Great news! Your withdrawal of ₦${Number(
+              transaction.amount,
+            ).toLocaleString()} has been successfully dispatched to your bank account. Ref: ${transaction.referenceId}.`,
+          );
+        } catch (emailError) {
+          console.error("Withdrawal success email error:", emailError);
+        }
+      }
+
+      const latestWallet = await walletModel.findOne({
+        userId,
+      });
+
+      return res.status(200).json({
+        status: "success",
+        message: "Withdrawal completed successfully",
+        balance: latestWallet?.balance,
+        transaction: updatedTransaction,
+      });
+    }
+
+    // -----------------------------------------------------
+    // 9. Handle PENDING
+    // -----------------------------------------------------
+    if (payment.status === "pending" || payment.status === "queued") {
+      return res.status(200).json({
+        status: "pending",
+        message: "Your withdrawal is still being processed",
         transaction,
       });
     }
 
-    transaction.status = "FAILED";
-    wallet.balance += Number(transaction.amount);
-    await transaction.save({ session });
-    await session.commitTransaction();
+    // -----------------------------------------------------
+    // 10. Handle FAILED / REVERSED
+    // -----------------------------------------------------
+    if (payment.status === "failed" || payment.status === "reversed") {
+      session.startTransaction();
 
-    if (req.user && req.user.email) {
-      sendEmail(
-        req.user.email,
-        "Withdrawal Failed - Wallet Refunded",
-        `We wanted to let you know that your withdrawal request of ₦${transaction.amount} failed at the bank processing stage. The full amount has been reversed to your app wallet balance.`,
+      // Only PENDING transactions can be refunded
+      const updatedTransaction = await transactionModel.findOneAndUpdate(
+        {
+          _id: transaction._id,
+          status: "PENDING",
+        },
+        {
+          $set: {
+            status: payment.status === "reversed" ? "REVERSED" : "FAILED",
+          },
+        },
+        {
+          new: true,
+          session,
+        },
       );
+
+      // Someone else already processed this transaction
+      if (!updatedTransaction) {
+        await session.abortTransaction();
+
+        return res.status(200).json({
+          status: "success",
+          message: "Transaction has already been processed",
+        });
+      }
+
+      // Refund wallet
+      const updatedWallet = await walletModel.findOneAndUpdate(
+        {
+          userId,
+        },
+        {
+          $inc: {
+            balance: Number(transaction.amount),
+          },
+        },
+        {
+          new: true,
+          session,
+        },
+      );
+
+      if (!updatedWallet) {
+        await session.abortTransaction();
+
+        return res.status(500).json({
+          status: "failed",
+          message:
+            "Transaction failed but wallet refund could not be completed",
+        });
+      }
+
+      await session.commitTransaction();
+
+      if (req.user?.email) {
+        try {
+          await sendEmail(
+            req.user.email,
+            "Withdrawal Failed - Wallet Refunded",
+            `Your withdrawal request of ₦${Number(
+              transaction.amount,
+            ).toLocaleString()} could not be completed. The amount has been refunded to your wallet. Reference: ${transaction.referenceId}.`,
+          );
+        } catch (emailError) {
+          console.error("Withdrawal failed email error:", emailError);
+        }
+      }
+
+      return res.status(400).json({
+        status: "failed",
+        message: "The withdrawal failed and your wallet has been refunded",
+        balance: updatedWallet.balance,
+        transaction: updatedTransaction,
+      });
     }
 
+    // -----------------------------------------------------
+    // 11. Unknown Paystack status
+    // -----------------------------------------------------
     return res.status(400).json({
       status: "failed",
-      message: "The transaction failed",
+      message: `Unknown Paystack transaction status: ${payment.status}`,
+      transaction,
     });
-  } catch (e) {
-    session.abortTransaction();
-    console.error(e);
-    res.status(500).json({
+  } catch (error) {
+    console.error("Withdrawal verification error:", error);
+
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    return res.status(500).json({
       status: "failed",
-      message: "verification could not be completed",
+      message: "Verification could not be completed",
     });
   } finally {
-    session.endSession();
+    await session.endSession();
   }
 };
 
-module.exports = { withdrawFunds, verificationController };
+/**
+ * =========================================================
+ * REFUND FAILED WITHDRAWAL
+ * =========================================================
+ *
+ * Used when Paystack cannot even initiate the transfer.
+ *
+ * It only refunds a transaction that is still PENDING.
+ * This prevents double refunds.
+ */
+const refundFailedWithdrawal = async (referenceId, userId, amount) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    // Atomically change PENDING → FAILED
+    const transaction = await transactionModel.findOneAndUpdate(
+      {
+        referenceId,
+        userId,
+        status: "PENDING",
+      },
+      {
+        $set: {
+          status: "FAILED",
+        },
+      },
+      {
+        new: true,
+        session,
+      },
+    );
+
+    // Already processed
+    if (!transaction) {
+      await session.abortTransaction();
+      return;
+    }
+
+    // Refund wallet
+    await walletModel.findOneAndUpdate(
+      { userId },
+      {
+        $inc: {
+          balance: Number(amount),
+        },
+      },
+      {
+        session,
+      },
+    );
+
+    await session.commitTransaction();
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    console.error("Withdrawal refund error:", error);
+
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
+module.exports = {
+  withdrawFunds,
+  verificationController,
+};

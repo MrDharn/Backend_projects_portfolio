@@ -21,21 +21,20 @@ export default function PublicShowcase() {
     <div className="space-y-16">
       <section className="space-y-6 max-w-3xl">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800 text-emerald-400 font-mono text-xs">
-          <span>Available for Backend & Systems Roles</span>
+          <span>Available for Backend & Systems Roles and Internship</span>
         </div>
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-100">
-          Building Scalable Architectures & Robust APIs
+          Engineering Expandable Infrastructures & Fault-Tolerant APIs
         </h1>
         <p className="text-slate-400 text-lg leading-relaxed">
-          Specialized in Node.js, Express, MongoDB, and Distributed Systems. Focused on secure,
-          maintainable microservices, REST fulfillment, and optimized backend pipelines.
+          Backend Specialist focused on Node.js, Express, MongoDB, and distributed systems. I build secure, maintainable microservices and high-efficiency backend pipelines.
         </p>
         <div className="flex flex-wrap gap-4 pt-2">
           <button
             onClick={handleResumeDownload}
             className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg transition-colors font-mono text-sm"
           >
-            Download Resume (.pdf)
+            Download Resume
           </button>
           <a
             href="#projects"

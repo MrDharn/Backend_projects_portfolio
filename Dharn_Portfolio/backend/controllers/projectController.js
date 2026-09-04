@@ -51,8 +51,14 @@ const fetchFeaturedProjects = async (req, res) => {
 const addProject = async (req, res) => {
   try {
     const project = await createProject(req.body);
+
+    return res.status(201).json({
+      status: "success",
+      message: "Project created successfully",
+      data: project,
+    });
   } catch (e) {
-    res.status(500).json({
+    return res.status(500).json({
       status: "failed",
       message: e.message || "Validation Error",
     });

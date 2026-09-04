@@ -6,8 +6,8 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require('compression')
 const cookieParser = require('cookie-parser')
-const errorHandler = require('./middlewares/errorHandler')
-const notFound = require('./middlewares/notFound')
+// const errorHandler = require('./middlewares/errorHandler')
+// const notFound = require('./middlewares/notFound')
 
 const dns = require('dns')
 dns.setServers([
@@ -34,6 +34,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const projectRoute = require('./routes/projectRoute');
 const resumeRoute = require('./routes/resumeDownloadRoute');
 const githubRoute = require('./routes/githubRoute');
+const authRoute = require('./routes/authRoute')
 
 
 const PORT = process.env.PORT || 3000
@@ -48,16 +49,18 @@ app.get("/", (req, res) => {
 });
 
 
-app.use("/api/contact", contactRoutes)
+app.use("/api/v1/contact", contactRoutes)
 
-app.use('/api/projects', projectRoute)
+app.use('/api/v1/projects', projectRoute)
 
-app.use('/api/resume',resumeRoute)
+app.use('/api/v1/resume',resumeRoute)
 
-app.use("/api/github", githubRoute)
+app.use("/api/v1/github", githubRoute)
 
-app.use(notFound)
-app.use(errorHandler)
+app.use("/api/v1/auth", authRoute)
+
+// app.use(notFound)
+// app.use(errorHandler)
 
 const startServer = async()=>{
     try{

@@ -1,27 +1,35 @@
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
 
-const adminLogin = async(req, res)=>{
-    const {email, password}= req.body
-    if(!email || !password) return res.status(400).json({
-        status: "failed",
-        message: "Invalid information"
-    })
+const adminLogin = async (req, res) => {
+    const { email, password } = req.body;
 
-    if(email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD){
-        const token = jwt.sign({isAdmin: true, email}, process.env.JWT_SECRET_KEY, {expiresIn: "7d"})
+    if (!email || !password) {
+        return res.status(400).json({
+            status: "failed",
+            message: "Email and password are required"
+        });
     }
 
-     res.status(200).json({
-        status: "success",
-        message: "Logged In Successfully",
-        token
-})
+    // Verify admin credentials
+    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+        const token = jwt.sign(
+            { isAdmin: true, email }, 
+            process.env.JWT_SECRET_KEY, 
+            { expiresIn: "7d" }
+        );
 
+        return res.status(200).json({
+            status: "success",
+            message: "Logged In Successfully",
+            token
+        });
+    }
+
+    // Return 401 if credentials do not match
     return res.status(401).json({
         status: "failed",
         message: "Invalid Admin Credentials"
     });
+};
 
-}
-
-module.exports = adminLogin
+module.exports = adminLogin;

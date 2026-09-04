@@ -51,6 +51,12 @@ const fetchFeaturedProjects = async (req, res) => {
 const addProject = async (req, res) => {
   try {
     const project = await createProject(req.body);
+    if(!project){
+      return res.status(403).json({
+        status: "failed",
+        message: 'Input is invalid'
+      })
+    }
 
     return res.status(201).json({
       status: "success",

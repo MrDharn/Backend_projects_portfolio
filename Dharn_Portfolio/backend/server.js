@@ -35,6 +35,7 @@ const projectRoute = require('./routes/projectRoute');
 const resumeRoute = require('./routes/resumeDownloadRoute');
 const githubRoute = require('./routes/githubRoute');
 const authRoute = require('./routes/authRoute')
+const adminRoute = require('./routes/adminRoute')
 
 
 const PORT = process.env.PORT || 3000
@@ -58,6 +59,8 @@ app.use('/api/v1/resume',resumeRoute)
 app.use("/api/v1/github", githubRoute)
 
 app.use("/api/v1/auth", authRoute)
+
+app.use("/api/v1/admin", adminRoute)
 
 // app.use(notFound)
 // app.use(errorHandler)

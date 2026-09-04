@@ -17,7 +17,7 @@ const adminLogin = async (req, res) => {
             process.env.JWT_SECRET_KEY, 
             { expiresIn: "7d" }
         );
-
+        console.log(token)
         return res.status(200).json({
             status: "success",
             message: "Logged In Successfully",

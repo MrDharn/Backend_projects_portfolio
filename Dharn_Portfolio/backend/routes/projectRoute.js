@@ -17,9 +17,9 @@ projectRoute.route("/:id/download").get(trackProjectDownload);
 
 //FOR ADMIN
 
-projectRoute.route("/project").post(adminAuth, addProject);
+projectRoute.route("/").post(adminAuth, addProject);
 
-projectRoute.route("/project/:id").patch(adminAuth, editProject);
+projectRoute.route("/:id").patch(adminAuth, editProject);
 
-projectRoute.route("/project/:id").delete(adminAuth, removeProject);
+projectRoute.route("/:id").delete(adminAuth, removeProject);
 module.exports = projectRoute;

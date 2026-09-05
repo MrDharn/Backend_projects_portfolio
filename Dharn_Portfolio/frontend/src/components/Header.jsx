@@ -5,7 +5,7 @@ export default function Header({ activeTab, setActiveTab, hasToken }) {
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
           <span className="font-mono font-bold text-slate-100 tracking-tight">
-            backend.dev<span className="text-emerald-400">/api</span>
+            DHARN.dev<span className="text-emerald-400">/api</span>
           </span>
         </div>
 

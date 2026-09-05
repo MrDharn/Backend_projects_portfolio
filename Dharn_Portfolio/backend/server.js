@@ -6,8 +6,6 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require('compression')
 const cookieParser = require('cookie-parser')
-// const errorHandler = require('./middlewares/errorHandler')
-// const notFound = require('./middlewares/notFound')
 
 const dns = require('dns')
 dns.setServers([
@@ -15,8 +13,20 @@ dns.setServers([
     '8.8.8.8'
 ])
 //node packages
-app.use(cors());
 
+//
+const allowedOrigins = [
+  "http://localhost:5173",
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PATCH","DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
 app.use(helmet());
 app.use(compression())
 app.use(morgan("dev"));

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import Header from './components/Header';
-import PublicShowcase from './features/public/PublicShowcase';
+import PublicShowcase from './features/public/PublicShowCase';
 import AdminPortal from './features/public/AdminPortal';
 
 export default function App() {

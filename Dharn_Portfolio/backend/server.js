@@ -17,7 +17,7 @@ dns.setServers([
 //
 const allowedOrigins = [
   "http://localhost:5173",
-  "dharnportfolio-8whle6znr-dharns-projects.vercel.app"
+  "https://dharnportfolio-8whle6znr-dharns-projects.vercel.app"
 ];
 
 app.use(

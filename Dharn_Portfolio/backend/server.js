@@ -17,6 +17,7 @@ dns.setServers([
 //
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://portfolio-zeta-khaki-r4m9176p8p.vercel.app"
 ];
 
 app.use(

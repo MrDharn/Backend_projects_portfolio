@@ -13,7 +13,7 @@ export default function PublicShowcase() {
   }, []);
 
   const handleResumeDownload = () => {
-    const apiBase = `${import.meta.env.VITE_API_BASE_URL}/api/v1` || 'http://localhost:3000/api/v1';
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
     window.open(`${apiBase}/resume`, '_blank');
   };
 

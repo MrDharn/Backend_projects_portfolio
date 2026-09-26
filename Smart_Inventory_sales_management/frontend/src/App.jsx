@@ -14,7 +14,7 @@ import "./assests/styles/global.css";
 
 export default function App() {
   const { isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(isAuthenticated ? "dashboard" : 'auth');
   const [products, setProducts] = useState([]);
 
   //AAutomatically switch tab based on auth state changes
@@ -26,6 +26,8 @@ export default function App() {
       setActiveTab("dashboard");
     }
   }, [isAuthenticated]);
+
+  console.log(isAuthenticated)
 
   const fetchInventory = async () => {
     try {

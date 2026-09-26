@@ -44,7 +44,7 @@ const signUpController = async(req, res)=>{
 const loginController = async(req, res)=>{
     try{
         const {email, password} = req.body;
-        if(!email || !password) res.status(400).json({
+        if(!email || !password) return res.status(400).json({
              status: "failed",
             message: "Email or password is empty"
         })
@@ -72,14 +72,14 @@ const loginController = async(req, res)=>{
         }, JWT_SECRET_KEY , {expiresIn:"60m"} )
 
         
-        res.status(200).json({
+       return res.status(200).json({
              status: "Success",
             message: "You Logged In successfully!!",
             createToken
         })
     }catch(e){
         console.error(e)
-        res.status(500).json({
+        return res.status(500).json({
              status: "failed",
             message: "Internal Server Error"
         })

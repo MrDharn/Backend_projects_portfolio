@@ -40,31 +40,31 @@ app.get('/', (req,res)=> {
 })
 
 //authController route
-app.use('/api/auth', authRoute)
+app.use('/api/v1/auth', authRoute)
 
 //userManagement Route
-app.use('/api/users', userManagementRoute);
+app.use('/api/v1/users', userManagementRoute);
 
 //category routes
-app.use('/api/categories', categoryRoute);
+app.use('/api/v1/categories', categoryRoute);
 
 //suppliers route
-app.use('/api/suppliers', supplierRoute)
+app.use('/api/v1/suppliers', supplierRoute)
 
 //product management route
-app.use('/api/products', productRoute)
+app.use('/api/v1/products', productRoute)
 
 //sales routes
-app.use('/api/sales', salesRoute)
+app.use('/api/v1/sales', salesRoute)
 
 //dashboard Route
-app.use('/api/dashboard', dashBoardRoute)
+app.use('/api/v1/dashboard', dashBoardRoute)
 
 //Stock movement route
-app.use('/api/stock-movement', stockMovementRoute)
+app.use('/api/v1/stock-movement', stockMovementRoute)
 
 //report route
-app.use('/api/report/', reportRoute)
+app.use('/api/v1/report/', reportRoute)
 //listen to express app
 const startSever = async()=>{
     try{

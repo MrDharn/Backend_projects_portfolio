@@ -23,8 +23,30 @@ const reportRoute = require('./Routes/reportRoute');
 //declare your port
 const PORT = process.env.PORT || 3000
 
+
+// Define allowed origins
+const allowedOrigins = [             
+  'http://localhost:5173',                  
+  'https://your-inventory-app.vercel.app'  
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS Policy Error: Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // Allow cookies or authorization headers
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
 //use cors
-app.use(cors())
+app.use(cors(corsOptions))
 //Middleware
 app.use(express.json());
 

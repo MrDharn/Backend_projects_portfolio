@@ -25,9 +25,11 @@ export default function App() {
     } else if (activeTab === "auth") {
       setActiveTab("dashboard");
     }
+
+    console.log(isAuthenticated)
   }, [isAuthenticated]);
 
-  console.log(isAuthenticated)
+  console.log(isAuthenticated, activeTab)
 
   const fetchInventory = async () => {
     try {

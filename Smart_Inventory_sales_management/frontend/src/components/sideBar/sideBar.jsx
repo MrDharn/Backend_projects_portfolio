@@ -40,13 +40,25 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       </nav>
 
       {isAuthenticated && (
-        <div style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid #1e293b' }}>
-          <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>
-            Logged in as: <strong>{user?.username || 'User'}</strong>
+        <div
+          style={{
+            marginTop: "auto",
+            padding: "16px",
+            borderTop: "1px solid #1e293b",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "0.85rem",
+              color: "#94a3b8",
+              marginBottom: "8px",
+            }}
+          >
+            Logged in as: <strong>{user?.username || "User"}</strong>
           </div>
-          <button 
-            className="btn btn-danger" 
-            style={{ width: '100%', padding: '8px' }}
+          <button
+            className="btn btn-danger"
+            style={{ width: "100%", padding: "8px" }}
             onClick={handleLogout}
           >
             Log Out

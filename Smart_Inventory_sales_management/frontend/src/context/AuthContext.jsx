@@ -18,11 +18,13 @@ export function AuthProvider({ children }) {
 
   const handleLogin = async (credentials) => {
     const response = await loginUser(credentials);
+    console.log(response)
     const {token: authToken, user: userData} = response.data
+    console.log(authToken.createToken, userData)
     if (authToken) {
       setToken(authToken);
       setUser(userData);
-      localStorage.setItem('user'. JSON.stringify(userData))
+      localStorage.setItem('user', JSON.stringify(userData))
     }
     console.log(response.data)
     return response.data;

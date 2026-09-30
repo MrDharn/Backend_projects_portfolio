@@ -63,9 +63,9 @@ export default function AuthPage() {
         <input
           type="text"
           className="input-field"
-          placeholder="Email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          placeholder="Username"
+          value={form.username}
+          onChange={(e) => setForm({ ...form, username: e.target.value })}
           required
         />
 

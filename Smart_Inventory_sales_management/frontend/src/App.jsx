@@ -42,6 +42,7 @@ export default function App() {
     if (isAuthenticated) {
       fetchInventory();
     }
+    
   }, [fetchInventory]);
 
   return (

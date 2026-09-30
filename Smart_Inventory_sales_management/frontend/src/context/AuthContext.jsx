@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { loginUser, registerUser } from '../services/authServices';
-
+import { getMe } from '../services/user';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (token) {
+      console.log(getMe)
       localStorage.setItem('token', token);
     } else {
       localStorage.removeItem('token');
@@ -16,11 +17,14 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
+
+  console.log(user)
+
   const handleLogin = async (credentials) => {
     const response = await loginUser(credentials);
     console.log(response)
     const {token: authToken, user: userData} = response.data
-    console.log(authToken.createToken, userData)
+    console.log(authToken, userData)
     if (authToken) {
       setToken(authToken);
       setUser(userData);

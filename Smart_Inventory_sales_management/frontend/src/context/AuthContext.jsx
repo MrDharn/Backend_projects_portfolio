@@ -1,59 +1,75 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { loginUser, registerUser } from '../services/authServices';
 import { getMe } from '../services/user';
+import { getStoredToken } from '../../../../Digital_Wallet_and_Payment_Processing_System/Frontend/src/services/apiClient';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || '');
-  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [user, setUser] = useState(null)
+  const [token, setToken] = useState(getStoredToken() || '')
+  const [isInitialized, setIsInitialized] = useState(false)
+  const [sessionExpiredMsg, setSessionExpiredMsg] = useState('')
 
-  useEffect(() => {
-    if (token) {
-      console.log(getMe)
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user')
+  const fetchProfile = useCallback(async()=> {
+    const stored = getStoredToken();
+    if(!stored){
+      setUser(null);
+
+      return
     }
-  }, [token]);
 
+    try{
 
-  console.log(user)
-
-  const handleLogin = async (credentials) => {
-    const response = await loginUser(credentials);
-    console.log(response)
-    const {token: authToken, user: userData} = response.data
-    console.log(authToken, userData)
-    if (authToken) {
-      setToken(authToken);
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData))
+      const response = await getMe();
+      if(response && response.data){
+        setUser(response.data)
+      }
+    }catch(err){
+      console.error('Failed to fetch user profile', err)
     }
-    console.log(response.data)
-    return response.data;
+  }, [])
 
-  };
+  useEffect(()=>{
+    const initAuth = async()=> {
+      const stored = getStoredToken();
+      if(stored){
+        setToken(stored)
 
-  const handleRegister = async (userData) => {
-    return await registerUser(userData);
-  };
+        await fetchProfile();
+      }
 
-  const handleLogout = () => {
-    setToken('');
+      setIsInitialized(true)
+    }
+
+    initAuth()
+  }, [fetchProfile])
+
+  const login = (newToken, remember = false)=> {
+    setToken(newToken)
+    setStoredToken(newToken, remember)
+    fetchProfile()
+  }
+
+  const logout = (message = '')=> {
+    removeStoredToken();
+    setToken('')
     setUser(null);
-     localStorage.removeItem('token')
-    localStorage.removeItem('user')
-  };
 
-  const isAuthenticated = Boolean(token);
-
+    if(message){
+      setSessionExpiredMsg(message)
+    }
+  }
 
   return (
-    <AuthContext.Provider value={{ user, token, handleLogin, handleRegister, handleLogout, isAuthenticated }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    <AuthContext.Provider value={{
+      user,token,
+      isInitialized,
+      setSessionExpiredMsg,
+      setSessionExpiredMsg,
+      login,
+      logout,
+      refreshProfile : fetchProfile
+    }}></AuthContext.Provider>
+  )
 }
-
-export const useAuth = () => useContext(AuthContext);
+ 

@@ -56,28 +56,6 @@ export default function AuthPage() {
     }
   };
 
-  if (token) {
-    return (
-      <div className="auth-container">
-        <div className="auth-header">
-          <h3>Active Session</h3>
-          <p style={{ marginTop: "8px", color: "#64748b" }}>
-            Logged in as:{" "}
-            <strong>{user?.username || user?.email || "Authenticated User"}</strong>
-          </p>
-          <button
-            type="button"
-            className="btn btn-danger"
-            style={{ width: "100%" }}
-            onClick={handleLogout}
-          >
-            Log Out
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="auth-container">
       <div
@@ -106,23 +84,23 @@ export default function AuthPage() {
 
       <form className="form-group" onSubmit={onSubmit}>
         <input
-          type="text"
+          type="email"
           className="input-field"
           placeholder="Enter your Email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          autoComplete="username"
+          autoComplete=""
           required
         />
 
         {!isLoginView && (
           <input
-            type="email"
+            type="text"
             className="input-field"
-            placeholder="Email Address"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            autoComplete="email"
+            placeholder="Username"
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            autoComplete=""
             required
           />
         )}

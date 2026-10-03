@@ -1,75 +1,106 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { loginUser, registerUser } from '../services/authServices';
 import { getMe } from '../services/user';
-import { getStoredToken } from '../../../../Digital_Wallet_and_Payment_Processing_System/Frontend/src/services/apiClient';
-const AuthContext = createContext();
+
+const AuthContext = createContext(null);
+
+// Local Storage Helper Functions
+const getStoredToken = () => localStorage.getItem('token') || '';
+const setStoredToken = (token) => localStorage.setItem('token', token);
+const removeStoredToken = () => localStorage.removeItem('token');
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [token, setToken] = useState(getStoredToken() || '')
-  const [isInitialized, setIsInitialized] = useState(false)
-  const [sessionExpiredMsg, setSessionExpiredMsg] = useState('')
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(getStoredToken() || '');
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [sessionExpiredMsg, setSessionExpiredMsg] = useState('');
 
-  const fetchProfile = useCallback(async()=> {
+  const fetchProfile = useCallback(async () => {
     const stored = getStoredToken();
-    if(!stored){
+    if (!stored) {
       setUser(null);
-
-      return
+      return;
     }
 
-    try{
-
+    try {
       const response = await getMe();
-      if(response && response.data){
-        setUser(response.data)
+      if (response && response.data) {
+        setUser(response.data);
       }
-    }catch(err){
-      console.error('Failed to fetch user profile', err)
+    } catch (err) {
+      console.error('Failed to fetch user profile', err);
+      // Clear invalid session on profile fetch error
+      removeStoredToken();
+      setToken('');
+      setUser(null);
     }
-  }, [])
+  }, []);
 
-  useEffect(()=>{
-    const initAuth = async()=> {
+  useEffect(() => {
+    const initAuth = async () => {
       const stored = getStoredToken();
-      if(stored){
-        setToken(stored)
-
+      if (stored) {
+        setToken(stored);
         await fetchProfile();
       }
+      setIsInitialized(true);
+    };
 
-      setIsInitialized(true)
+    initAuth();
+  }, [fetchProfile]);
+
+  const handleLogin = async (credentials) => {
+    const response = await loginUser(credentials);
+    const newToken = response.data?.token || response.token;
+    if (newToken) {
+      setStoredToken(newToken);
+      setToken(newToken);
+      await fetchProfile();
     }
+    return response;
+  };
 
-    initAuth()
-  }, [fetchProfile])
+  const handleRegister = async (userData) => {
+    return await registerUser(userData);
+  };
 
-  const login = (newToken, remember = false)=> {
-    setToken(newToken)
-    setStoredToken(newToken, remember)
-    fetchProfile()
-  }
-
-  const logout = (message = '')=> {
+  const handleLogout = (message = '') => {
     removeStoredToken();
-    setToken('')
+    setToken('');
     setUser(null);
 
-    if(message){
-      setSessionExpiredMsg(message)
+    if (message) {
+      setSessionExpiredMsg(message);
     }
-  }
+  };
+
+  const isAuthenticated = Boolean(token);
 
   return (
-    <AuthContext.Provider value={{
-      user,token,
-      isInitialized,
-      setSessionExpiredMsg,
-      setSessionExpiredMsg,
-      login,
-      logout,
-      refreshProfile : fetchProfile
-    }}></AuthContext.Provider>
-  )
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated,
+        isInitialized,
+        sessionExpiredMsg,
+        setSessionExpiredMsg,
+        handleLogin,
+        handleRegister,
+        handleLogout,
+        refreshProfile: fetchProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
- 
+
+// Custom hook to consume AuthContext easily
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

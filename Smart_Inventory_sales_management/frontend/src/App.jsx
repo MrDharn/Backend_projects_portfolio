@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "./components/protectedRoute/ProtectedRoute";
 import Sidebar from "./components/sideBar/sideBar";
 import { useAuth } from "./context/AuthContext";
@@ -6,44 +6,47 @@ import { useAuth } from "./context/AuthContext";
 import AuthPage from "./auth/AuthPage";
 import PosTerminal from "./components/pos/PosTerminal";
 import ProductList from "./components/products/ProductList";
+import CategoryList from "./components/categories/CategoryList";
+import SupplierList from "./components/suppliers/SupplierList";
 import StockMovementLogs from "./components/stockMovements/StockMovementLogs";
-import { getProducts } from "./services/productServices";
 import ReportsDashboard from "./components/reports/ReportsDashBoard";
 
-import "./assests/styles/global.css";
+import { getProducts } from "./services/productServices";
+import "./assets/styles/global.css";
 
 export default function App() {
-  const { isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState(isAuthenticated ? "dashboard" : 'auth');
+  const { isAuthenticated, isInitialized } = useAuth();
+  const [activeTab, setActiveTab] = useState(isAuthenticated ? "dashboard" : "auth");
   const [products, setProducts] = useState([]);
 
-  //AAutomatically switch tab based on auth state changes
-
+  // Sync active tab when authentication state changes
   useEffect(() => {
     if (!isAuthenticated) {
       setActiveTab("auth");
     } else if (activeTab === "auth") {
       setActiveTab("dashboard");
     }
-
-    console.log(isAuthenticated)
   }, [isAuthenticated]);
 
-  const fetchInventory = async () => {
+  // Memoized fetch function to prevent infinite re-render loop
+  const fetchInventory = useCallback(async () => {
     try {
       const res = await getProducts();
       setProducts(res.data || []);
     } catch (err) {
       console.error("Failed to fetch products", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchInventory();
     }
-    
-  }, [fetchInventory]);
+  }, [isAuthenticated, fetchInventory]);
+
+  if (!isInitialized) {
+    return <div className="loading-screen">Loading Application...</div>;
+  }
 
   return (
     <div className="app-layout" style={{ display: "flex", height: "100vh" }}>

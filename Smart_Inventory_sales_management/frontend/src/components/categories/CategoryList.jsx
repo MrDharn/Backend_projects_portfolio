@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getCategories, createCategory, deleteCategory } from '../../services/categoryService';
+import { getCategories, createCategory, deleteCategory } from '../../services/categoryServices';
 
 export default function CategoryList() {
   const [categories, setCategories] = useState([]);

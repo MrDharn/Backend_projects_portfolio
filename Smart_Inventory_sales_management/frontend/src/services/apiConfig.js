@@ -17,4 +17,15 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+// Interceptor to handle global 401 unauthenticated errors
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default API;

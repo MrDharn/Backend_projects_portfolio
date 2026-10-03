@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
+
+
+import {Routes, Route, Navigate} from 'react-router-dom'
+import MainLayout from "./layout/MainLayout";
 import ProtectedRoute from "./components/protectedRoute/ProtectedRoute";
+
+
 import Sidebar from "./components/sideBar/sideBar";
 import { useAuth } from "./context/AuthContext";
 
@@ -13,22 +19,13 @@ import ReportsDashboard from "./components/reports/ReportsDashBoard";
 
 import { getProducts } from "./services/productServices";
 import "./assets/styles/global.css";
+import { Form } from "react-router-dom";
 
 export default function App() {
   const { isAuthenticated, isInitialized } = useAuth();
-  const [activeTab, setActiveTab] = useState(isAuthenticated ? "dashboard" : "auth");
   const [products, setProducts] = useState([]);
 
-  // Sync active tab when authentication state changes
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setActiveTab("auth");
-    } else if (activeTab === "auth") {
-      setActiveTab("dashboard");
-    }
-  }, [isAuthenticated]);
-
-  // Memoized fetch function to prevent infinite re-render loop
+  // Fetch inventory when authenticated
   const fetchInventory = useCallback(async () => {
     try {
       const res = await getProducts();
@@ -48,64 +45,40 @@ export default function App() {
     return <div className="loading-screen">Loading Application...</div>;
   }
 
+  // 1. If NOT authenticated, show ONLY the Auth Page
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
+
+  // 2. If authenticated, render full application layout with Sidebar
   return (
-    <div className="app-layout" style={{ display: "flex", height: "100vh" }}>
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <Routes>
+      <Route path='/login' element={<AuthPage/>} />
 
-      <main
-        className="main-content"
-        style={{ flex: 1, padding: "24px", overflowY: "auto" }}
-      >
-        {activeTab === "auth" && <AuthPage />}
+      {/* Protected ROutes */}
 
-        {activeTab === "dashboard" && (
-          <ProtectedRoute>
+      <Route element={<ProtectedRoute/>}>
+        <Route element={<MainLayout/>}>
+          <Route path="/dashboard" element = {
+
             <div className="card">
               <h2>Welcome to Smart Inventory</h2>
-              <p style={{ marginTop: "8px", color: "var(--text-muted)" }}>
-                Select a module from the sidebar to manage products, categories,
-                sales, and analytics.
-              </p>
+              <p>Select a module from a sidebar to get started. </p>
+
             </div>
-          </ProtectedRoute>
-        )}
+          } />
 
-        {activeTab === "pos" && (
-          <ProtectedRoute>
-            <PosTerminal products={products} onSaleComplete={fetchInventory} />
-          </ProtectedRoute>
-        )}
+          <Route path='/pos' element={<PosTerminal products={products} onSalescomplete={fetchInventory} />} />
+          <Route path='/products' element = {<ProductList products={products} refreshProducts={fetchInventory} />} />
+          <Route path="/categories" element={<CategoryList />} />
+          <Route path = "/suppliers" element={<SupplierList/>} />
+          <Route path = '/stock' element={<StockMovementLogs />} />
+          <Route path='/reports' element = {<ReportsDashboard /> } />
+        </Route>
+      </Route>
 
-        {activeTab === "products" && (
-          <ProtectedRoute>
-            <ProductList products={products} refreshProducts={fetchInventory} />
-          </ProtectedRoute>
-        )}
-
-        {activeTab === "categories" && (
-          <ProtectedRoute>
-            <CategoryList />
-          </ProtectedRoute>
-        )}
-
-        {activeTab === "suppliers" && (
-          <ProtectedRoute>
-            <SupplierList />
-          </ProtectedRoute>
-        )}
-
-        {activeTab === "stock" && (
-          <ProtectedRoute>
-            <StockMovementLogs />
-          </ProtectedRoute>
-        )}
-
-        {activeTab === "reports" && (
-          <ProtectedRoute>
-            <ReportsDashboard />
-          </ProtectedRoute>
-        )}
-      </main>
-    </div>
-  );
+      {/* Catch all routes */}
+      <Route path='*' element={<Navigate to={isAuthenticated ? "/dashboard" : '/login'} replace /> } />
+    </Routes>
+  )
 }

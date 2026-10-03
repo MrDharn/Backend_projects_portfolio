@@ -1,41 +1,53 @@
 import React from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-export default function Sidebar({ activeTab, setActiveTab }) {
+
+export default function Sidebar() {
   const { isAuthenticated, user, handleLogout } = useAuth();
+  const navigate = useNavigate();
+
   const menuItems = [
-    { id: "dashboard", label: "📊 Dashboard" },
-    { id: "pos", label: "🛒 POS Terminal" },
-    { id: "products", label: "📦 Products" },
-    { id: "categories", label: "📁 Categories" },
-    { id: "suppliers", label: "🚛 Suppliers" },
-    { id: "stock", label: "🔄 Stock Movements" },
-    { id: "reports", label: "📈 Reports" },
-    { id: "auth", label: "🔐 Auth" },
+    { path: "/", label: "📊 Dashboard" },
+    { path: "/pos", label: "🛒 POS Terminal" },
+    { path: "/products", label: "📦 Products" },
+    { path: "/categories", label: "📁 Categories" },
+    { path: "/suppliers", label: "🚛 Suppliers" },
+    { path: "/stock", label: "🔄 Stock Movements" },
+    { path: "/reports", label: "📈 Reports" },
   ];
+
+  const onLogout = () => {
+    handleLogout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">SmartInventory</div>
+
       <nav className="sidebar-nav">
         {!isAuthenticated ? (
-          <button
-            className={`nav-btn ${activeTab === "auth" ? "active" : ""}`}
-            onClick={() => setActiveTab("auth")}
+          <NavLink
+            to="/login"
+            className={({ isActive }) =>
+              `nav-btn ${isActive ? "active" : ""}`
+            }
           >
             🔐 Login / Register
-          </button>
+          </NavLink>
         ) : (
-          <>
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                className={`nav-btn ${activeTab === item.id ? "active" : ""}`}
-                onClick={() => setActiveTab(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </>
+          menuItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === "/"} // Ensures exact match for home route
+              className={({ isActive }) =>
+                `nav-btn ${isActive ? "active" : ""}`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))
         )}
       </nav>
 
@@ -54,12 +66,13 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               marginBottom: "8px",
             }}
           >
-            Logged in as: <strong>{user?.username || "User"}</strong>
+            Logged in as: <strong>{user?.username || user?.email || "User"}</strong>
           </div>
           <button
+            type="button"
             className="btn btn-danger"
             style={{ width: "100%", padding: "8px" }}
-            onClick={handleLogout}
+            onClick={onLogout}
           >
             Log Out
           </button>

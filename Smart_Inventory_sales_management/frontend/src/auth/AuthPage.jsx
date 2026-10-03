@@ -1,8 +1,15 @@
 import React, { useState } from "react";
+import { useNavigate, Navigate } from "react-router-dom";
+
 import { useAuth } from "../context/AuthContext";
 
+
 export default function AuthPage() {
-  const { user, token, handleLogin, handleRegister, handleLogout } = useAuth();
+
+  const navigate = useNavigate()
+
+  const {handleLogin, handleRegister, handleLogout, isAuthenticated } = useAuth();
+
   const [isLoginView, setIsLoginView] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -20,6 +27,9 @@ export default function AuthPage() {
     resetForm();
   };
 
+  if(isAuthenticated){
+    return <Navigate to = '/dashboard' replace / >
+  }
   const onSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -31,6 +41,8 @@ export default function AuthPage() {
         // Corrected payload: pass username/email according to your backend strategy
         await handleLogin({ email: form.email, password: form.password });
         setSuccessMsg("Logged in successfully!");
+
+        navigate('/dashboard', {replace: true})
       } else {
         await handleRegister(form);
         setSuccessMsg("Registration complete! Please login.");
@@ -96,9 +108,9 @@ export default function AuthPage() {
         <input
           type="text"
           className="input-field"
-          placeholder="Username"
-          value={form.username}
-          onChange={(e) => setForm({ ...form, username: e.target.value })}
+          placeholder="Enter your Email"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
           autoComplete="username"
           required
         />

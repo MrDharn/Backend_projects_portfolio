@@ -6,6 +6,12 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY
 const signUpController = async(req, res)=>{
     try{
         const {username, password,role,email} = req.body;
+        if(!username || !password || !email){
+            return res.status(400).json({
+                status: 'failed',
+                message: "Fields are empty"
+            })
+        }
         //check if user is already in Existence with email;
         const userExistence = await userModel.findOne({email});
         if(userExistence) return res.status(400).json({
